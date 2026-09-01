@@ -14,7 +14,17 @@ once, no repeats across the three fields.
 - **Bundle ID:** `com.avaresearch.secondlook`
 - **Primary category:** Utilities  ·  **Secondary:** Business
 - **Age rating:** 4+ (no objectionable content)
-- **Price:** Free. No IAP in v1. (If deep-check volume is ever metered, a `SecondLook Pro` `.pro.{monthly,yearly}` slot is reserved — not shipped.)
+- **Price:** Free to download. Optional **SecondLook Plus** auto-renewable
+  subscription — **$3.99/month** or **$24.99/year** (≈ $2.08/mo, ~48% off),
+  7-day free trial on both. Group `SecondLook Plus`; products
+  `com.avaresearch.secondlook.plus.{monthly,yearly}`.
+  - Deliberately at the **low end** of the comp set (StopScam / Scam Scanner are
+    $4.99/mo; NoClick runs $4.99/**week**). The brand promise is "we don't
+    extract from you" — the price shouldn't either.
+  - Free is safety-complete: unlimited standard on-device checks, screenshot
+    OCR, hiring-stage context, full findings, recent history, 2 Deep AI
+    Checks/month. Plus adds 20 Deep AI Checks/month, full saved history, deeper
+    analysis. **Plus never gates basic safety.**
 
 ## Keywords (≤100) — the hidden App Store Connect array
 

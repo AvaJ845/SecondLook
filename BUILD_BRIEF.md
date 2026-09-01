@@ -107,6 +107,47 @@ device" tension — Mei signs off because no user content is ever in the payload
 - Paid fallback + a durable rate-limit store on the Worker before public launch
 - Verify the OpenRouter vision model IDs against the live catalog; tune the chain
 
+## Slice 2 — onboarding + subscription (shipped)
+
+- 4-screen first-run onboarding with the SecondLook hand signature (Navy→Teal,
+  per-screen gesture, Reduce Motion aware). First-launch only; Skip == finish;
+  no account, no permissions, no paywall in the flow. iPhone + iPad.
+- StoreKit 2: `SubscriptionManager` + `Entitlements` (single source of truth) +
+  `DeepCheckQuota` (keychain-backed monthly ledger, survives reinstall).
+- **SecondLook Plus — $3.99/month or $24.99/year (≈ $2.08/mo), 7-day free trial.**
+  Deliberately low-end vs the comp set ($4.99/mo elsewhere; NoClick $4.99/week).
+  Free is safety-complete + 2 Deep AI Checks/mo; Plus = 20/mo + full history +
+  deeper analysis. Plus never gates basic safety.
+- Paywall never shown in onboarding. `PlusUpsellSheet` once after the first
+  completed check; full `PaywallView` on Deep-AI-quota exhaustion and from About.
+- Tab "Saved" → "History"; free shows recent window, Plus shows all.
+- Privacy copy: "the message never leaves your device" → "your normal check
+  stays on your device".
+
+## North Star for the P0-blocker fixes (Fellows, concept mode)
+
+> The standard check runs entirely on device, explains itself with named rules
+> not a score, and makes **zero** network requests in the shipping build — a
+> five-part claim no incumbent (StopScam, ScamAdviser, Bitdefender Scamio,
+> Malwarebytes Scam Guard, NoClick) can honestly make. Every P0 fix must
+> strengthen that claim.
+
+Verdicts:
+- **Redaction → a `Sanitized` boundary type** gating screen / history / AI
+  payloads; adversarial corpus; broaden patterns (bare + spaced SSN, cards,
+  accounts, DOB-in-prose); sanitize OCR text and the deep-check `payload["text"]`.
+  **SHIP — do first.** (`Kit/Redaction.swift:44`, `Kit/AI/DeepCheck.swift:66-68`)
+- **Backend abuse → App Attest / DeviceCheck per-install credential + a Durable
+  Object atomic rate limiter**; the plist token demoted to a bootstrap secret
+  for `/v1/register`. **RESHAPE** — scoped first cut (DO limiter + bootstrapped
+  short-lived tokens), lazy background attestation that blocks only the *first*
+  deep check. Adding user accounts to rate-limit is a **CUT** (kills "no
+  account").
+- **Growth loop → on-device `ImageRenderer` ShareCard** (overall read + finding
+  titles + severities + disclaimer + URL; no quotes, no domains, no identity) +
+  a "Check with SecondLook" App Intent. **SHIP** the card; Reshape the Intent
+  into the same release.
+
 ## Open questions
 
 - Ship the domain reference list in-app (current) vs. a signed, updatable bundle?
