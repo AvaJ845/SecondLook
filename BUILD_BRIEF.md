@@ -163,10 +163,22 @@ Verdicts:
     mirror. Adding user accounts stays **CUT**.
   - 6 `CredentialProviderTests` (cache, concurrency, expiry, 401 refresh,
     bootstrap fallback). E2E register→generate confirmed in the sim.
-- **Growth loop → on-device `ImageRenderer` ShareCard** (overall read + finding
-  titles + severities + disclaimer + URL; no quotes, no domains, no identity) +
-  a "Check with SecondLook" App Intent. **SHIP** the card; Reshape the Intent
-  into the same release.
+- **Growth loop → on-device ShareCard + App Intent** — ✅ **DONE.**
+  - `ShareCard` (Kit) is built only from the overall read + finding *titles* +
+    severities + stage. **No field exists for a quote, domain, email, or name** —
+    a share can't leak the message by construction. `plainText()` fallback.
+  - `ShareCardView` — fixed 1080×1350, fixed light palette (navy on mint/white,
+    theme-independent), severity = SF Symbol + the severity word, never colour
+    alone. `ShareCardRenderer` → PNG on device, < 400 KB.
+  - `ShareResultSheet` on the report ("Share this result") — always shows the
+    exact card before it's sent, then a `ShareLink` vending a `SharedResult`
+    (`Transferable`: PNG + plain-text fallback). One artifact, not three.
+  - `CheckMessageIntent` + `SecondLookShortcuts` — "Check this with SecondLook"
+    Siri phrase / Shortcuts action; stages the text locally (`PendingCheck`),
+    `AnalyzeView` consumes it on appear. Inbound share extension + this + the
+    share-out card = the loop.
+  - 7 `ShareCardTests` (no content leak, capped findings, clean/strong copy,
+    stage label, plain-text). Verified visually in the sim.
 
 ## Open questions
 

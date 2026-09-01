@@ -12,7 +12,8 @@ friend who's job-hunting right now.
 ## How it works
 
 1. **Bring the message in** — paste text, import a screenshot (read on-device with
-   the Vision framework), or use the share sheet from Mail / Messages / a browser.
+   the Vision framework), use the share sheet from Mail / Messages / a browser, or
+   run the "Check this with SecondLook" Shortcut / Siri phrase.
 2. **Pick your hiring stage** — first contact, interviewing, offer, or onboarding.
    The same request can be routine at one stage and a red flag at another.
 3. **Read the report** — an overall read plus an explainable list of findings.
@@ -21,6 +22,9 @@ friend who's job-hunting right now.
 4. **Link check** — any domains in the message are compared on-device to a bundled
    list of real careers and applicant-tracking sites, and checked for brand
    lookalikes (`amaz0n-hiring.com`). SecondLook never opens the links.
+5. **Share it** — "Share this result" renders a card (on device) with the overall
+   read and the finding titles — **no message text, no names, no links from the
+   message** — for a friend who's job hunting.
 
 ## Plain-language layer (AI)
 

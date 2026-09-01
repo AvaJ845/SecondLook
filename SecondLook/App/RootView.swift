@@ -23,6 +23,9 @@ struct RootView: View {
             .interactiveDismissDisabled()
         }
         .onAppear {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-skip-onboarding") { return }
+            #endif
             if !onboardingCompleted { showOnboarding = true }
         }
     }

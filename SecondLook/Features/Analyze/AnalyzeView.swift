@@ -60,6 +60,13 @@ struct AnalyzeView: View {
             .task(id: photoItem) {
                 await model.loadImage(photoItem)
             }
+            .onAppear {
+                if let pending = PendingCheck.take() {
+                    model.text = pending
+                    model.stage = .unsure
+                    model.report = nil
+                }
+            }
             .onChange(of: model.report == nil) { wasReportShowing, reportGone in
                 // Returned from the first completed check → offer Plus, once.
                 if reportGone, firstCheckCompleted, !upsellShown, !entitlements.isPlus {

@@ -11,6 +11,7 @@ struct ReportView: View {
     @State private var showSaveDialog = false
     @State private var saveLabel = ""
     @State private var saved = false
+    @State private var showShare = false
 
     var body: some View {
         ScrollView {
@@ -53,11 +54,29 @@ struct ReportView: View {
                         .cardStyle()
                 }
 
+                Button {
+                    showShare = true
+                } label: {
+                    Label("Share this result", systemImage: "square.and.arrow.up")
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(Palette.brandTeal)
+
                 DisclaimerFooter()
             }
             .padding(20)
         }
         .background(Color(uiColor: .systemGroupedBackground))
+        .sheet(isPresented: $showShare) {
+            ShareResultSheet(report: report)
+        }
+        #if DEBUG
+        .onAppear {
+            if ProcessInfo.processInfo.arguments.contains("-demo-share") { showShare = true }
+        }
+        #endif
         .navigationTitle("Second look")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
