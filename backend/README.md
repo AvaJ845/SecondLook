@@ -33,24 +33,41 @@ model from naming or accusing any real company or person.
 (`GET /health` → `{"ok":true}`). `SECONDLOOK_CLIENT_TOKEN` is set and the app's
 `Config/AIConfig.plist` points at it.
 
-**Pending:** the provider secrets. Until they're added, `/v1/generate` returns
+**Pending:** the OpenRouter key. Until it's added, `/v1/generate` returns
 `502 all providers failed` and the app falls back to on-device text.
 
 ```sh
 cd backend
-npx wrangler secret put OPENROUTER_API_KEY   # sk-or-v1-…  (vision models + GLM)
-npx wrangler secret put NVIDIA_API_KEY       # nvapi-…     (gpt-oss fallback for text tasks)
+npx wrangler secret put OPENROUTER_API_KEY --name secondlook-ai   # sk-or-v1-…
 # already set: SECONDLOOK_CLIENT_TOKEN
+# NVIDIA_API_KEY is not needed unless you re-add an `nvidia:` model to a chain.
 ```
 
-Verify:
+Verify (client token is in `Config/AIConfig.plist`):
 
 ```sh
-TOKEN=<the SECONDLOOK_CLIENT_TOKEN>
+TOKEN=$(/usr/libexec/PlistBuddy -c 'Print :ClientToken' ../Config/AIConfig.plist)
+
+# which free models this account can use (keeps the chains in worker.js current)
+curl -s https://secondlook-ai.divine-mountain-8173.workers.dev/v1/models \
+  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+
+# end-to-end text task
 curl -s https://secondlook-ai.divine-mountain-8173.workers.dev/v1/generate \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"task":"plainSummary","tier":"fast","input":{"hiring_stage":"First contact","signals_that_fired":"Major red flag: Asks you to pay to get the job"},"prompt":"summarize"}'
 ```
+
+## Model chains (free only)
+
+Chosen 2026-08-31 from this account's `/v1/models`. They drift — re-check and
+edit the constants at the top of `src/worker.js`, then redeploy.
+
+| chain | models |
+| --- | --- |
+| text (fast) | nemotron-3.5-lightning → glm-5.2 → minimax-m2.7 → nemotron-3-super |
+| text (quality) | minimax-m2.7 → nemotron-3-ultra → glm-5.2 → nemotron-3-super |
+| deepCheck (vision) | gemma-4-31b → minimax-m3 → nemotron-3-nano-omni → gemma-4-26b → dots-3-note → (text-only retry) |
 
 ## Redeploy
 

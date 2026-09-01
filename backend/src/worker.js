@@ -26,35 +26,35 @@
  * or person in every task.
  */
 
-// ─── models — FREE ONLY ───────────────────────────────────────────────────────
-// Every OpenRouter id ends in ":free" (no credit, ~50 req/day/account shared
-// across all free models). NVIDIA's serverless gpt-oss models are free for a
-// standard account. There is no paid backstop and no PAID_FALLBACK flag — if a
-// request can't be served free it fails and the app uses its on-device result.
+// ─── models — FREE ONLY, all via OpenRouter ───────────────────────────────────
+// Every id ends in ":free" (no credit; ~50 req/day/account shared across all
+// free models). No paid backstop, no PAID_FALLBACK flag — if a request can't be
+// served free it fails and the app falls back to its on-device result.
 //
-// Model ids drift. Check the live catalog and update these:
-//   GET /v1/models         (this worker, authed) → free text + vision ids
-//   https://openrouter.ai/models?max_price=0
-const NV_120      = "nvidia:openai/gpt-oss-120b";
-const NV_20       = "nvidia:openai/gpt-oss-20b";
-const OR_GLM      = "openrouter:z-ai/glm-4.5-air:free";
-const OR_DEEPSEEK = "openrouter:deepseek/deepseek-chat-v3.1:free";
-const OR_LLAMA    = "openrouter:meta-llama/llama-3.3-70b-instruct:free";
+// Model ids drift fast. Refresh from the live catalog and update these:
+//   GET /v1/models   (this worker, authed) → this account's free text + vision ids
+// Chosen from that list on 2026-08-31.
+const GLM        = "openrouter:z-ai/glm-5.2:free";
+const MINIMAX    = "openrouter:minimax/minimax-m2.7:free";
+const NEM_LIGHT  = "openrouter:nvidia/nemotron-3.5-lightning:free";   // fast
+const NEM_SUPER  = "openrouter:nvidia/nemotron-3-super-120b-a12b:free";
+const NEM_ULTRA  = "openrouter:nvidia/nemotron-3-ultra-550b-a55b:free"; // strongest
 
-// Vision-capable, free. Text-task models can't read images, so if every vision
-// model fails we retry text-only on a strong free text model.
+// Vision-capable, free. Text models can't read images, so if every vision model
+// fails we retry text-only on a strong free text model.
 const VISION_FREE = [
-  "openrouter:meta-llama/llama-3.2-11b-vision-instruct:free",
-  "openrouter:qwen/qwen2.5-vl-72b-instruct:free",
-  "openrouter:mistralai/mistral-small-3.2-24b-instruct:free",
-  "openrouter:google/gemma-3-27b-it:free",
+  "openrouter:google/gemma-4-31b-it:free",
+  "openrouter:minimax/minimax-m3:free",
+  "openrouter:nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+  "openrouter:google/gemma-4-26b-a4b-it:free",
+  "openrouter:dots-studio/dots-3-note-preview:free",
 ];
-const VISION_TEXT_FALLBACK = [NV_120, OR_DEEPSEEK, OR_GLM];
+const VISION_TEXT_FALLBACK = [NEM_ULTRA, GLM, MINIMAX];
 
 const TASK_MODELS = {
-  plainSummary:   [NV_20, OR_GLM, OR_DEEPSEEK, NV_120, OR_LLAMA],
-  verifyEmployer: [NV_20, OR_GLM, OR_DEEPSEEK, NV_120, OR_LLAMA],
-  replyCoach:     [NV_120, OR_DEEPSEEK, OR_GLM, OR_LLAMA, NV_20],
+  plainSummary:   [NEM_LIGHT, GLM, MINIMAX, NEM_SUPER],
+  verifyEmployer: [NEM_LIGHT, GLM, MINIMAX, NEM_SUPER],
+  replyCoach:     [MINIMAX, NEM_ULTRA, GLM, NEM_SUPER],
   deepCheck:      VISION_FREE, // + VISION_TEXT_FALLBACK appended at request time
 };
 
