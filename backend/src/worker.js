@@ -26,35 +26,36 @@
  * or person in every task.
  */
 
-// ─── text-task models (free) ──────────────────────────────────────────────────
+// ─── models — FREE ONLY ───────────────────────────────────────────────────────
+// Every OpenRouter id ends in ":free" (no credit, ~50 req/day/account shared
+// across all free models). NVIDIA's serverless gpt-oss models are free for a
+// standard account. There is no paid backstop and no PAID_FALLBACK flag — if a
+// request can't be served free it fails and the app uses its on-device result.
+//
+// Model ids drift. Check the live catalog and update these:
+//   GET /v1/models         (this worker, authed) → free text + vision ids
+//   https://openrouter.ai/models?max_price=0
 const NV_120      = "nvidia:openai/gpt-oss-120b";
 const NV_20       = "nvidia:openai/gpt-oss-20b";
-const OR_GLM      = "openrouter:z-ai/glm-5.2:free";
-const OR_MINIMAX  = "openrouter:minimax/minimax-m2.7:free";
-const OR_MINIMAX3 = "openrouter:minimax/minimax-m3:free";
-const GLM_DIRECT  = ["glm-4.7-flash", "glm-4.5-flash"]; // Aliyun-blocked from CF; kept for a non-CF host
-const OR_PAID     = "openrouter:z-ai/glm-4.6";          // paid backstop, tail only
+const OR_GLM      = "openrouter:z-ai/glm-4.5-air:free";
+const OR_DEEPSEEK = "openrouter:deepseek/deepseek-chat-v3.1:free";
+const OR_LLAMA    = "openrouter:meta-llama/llama-3.3-70b-instruct:free";
 
-// ─── vision models for deepCheck ──────────────────────────────────────────────
-// OpenRouter, vision-capable. IDs drift — verify against
-// https://openrouter.ai/models?modality=text+image->text (see README).
-// NVIDIA's free tier is text-only (gpt-oss), so it can't sit in this chain;
-// a text-only retry on the strongest text model is the final fallback instead.
+// Vision-capable, free. Text-task models can't read images, so if every vision
+// model fails we retry text-only on a strong free text model.
 const VISION_FREE = [
   "openrouter:meta-llama/llama-3.2-11b-vision-instruct:free",
+  "openrouter:qwen/qwen2.5-vl-72b-instruct:free",
   "openrouter:mistralai/mistral-small-3.2-24b-instruct:free",
-  "openrouter:qwen/qwen-2.5-vl-7b-instruct:free",
-  "openrouter:google/gemini-2.0-flash-exp:free",
+  "openrouter:google/gemma-3-27b-it:free",
 ];
-const VISION_PAID = "openrouter:qwen/qwen-2.5-vl-72b-instruct"; // paid backstop
-// Used when every vision model fails but we still have text to work with.
-const VISION_TEXT_FALLBACK = [OR_MINIMAX, NV_120, OR_GLM];
+const VISION_TEXT_FALLBACK = [NV_120, OR_DEEPSEEK, OR_GLM];
 
 const TASK_MODELS = {
-  plainSummary:   [OR_MINIMAX3, NV_20, OR_GLM, NV_120, ...GLM_DIRECT],
-  verifyEmployer: [OR_MINIMAX3, NV_20, OR_GLM, NV_120, ...GLM_DIRECT],
-  replyCoach:     [OR_MINIMAX, NV_120, OR_GLM, OR_MINIMAX3, NV_20, ...GLM_DIRECT],
-  deepCheck:      VISION_FREE, // + text fallback appended at request time
+  plainSummary:   [NV_20, OR_GLM, OR_DEEPSEEK, NV_120, OR_LLAMA],
+  verifyEmployer: [NV_20, OR_GLM, OR_DEEPSEEK, NV_120, OR_LLAMA],
+  replyCoach:     [NV_120, OR_DEEPSEEK, OR_GLM, OR_LLAMA, NV_20],
+  deepCheck:      VISION_FREE, // + VISION_TEXT_FALLBACK appended at request time
 };
 
 const MAX_TOKENS = {
@@ -109,8 +110,6 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/health") return json({ ok: true, worker: "secondlook-ai" });
 
-    if (request.method !== "POST") return json({ error: "POST only" }, 405);
-
     const auth = request.headers.get("Authorization") || "";
     if (auth !== `Bearer ${env.SECONDLOOK_CLIENT_TOKEN}`) {
       return json({ error: "unauthorized" }, 401);
@@ -119,7 +118,12 @@ export default {
     const ip = request.headers.get("CF-Connecting-IP") || "anon";
     if (await rateLimited(ip, env)) return json({ error: "rate limited" }, 429);
 
+    // Debug helper (GET or POST): the free OpenRouter models that can do our
+    // tasks, so the chains above can be kept current.
+    if (url.pathname === "/v1/models") return listFreeModels(env);
+
     if (url.pathname !== "/v1/generate") return json({ error: "not found" }, 404);
+    if (request.method !== "POST") return json({ error: "POST only" }, 405);
 
     let body;
     try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
@@ -128,17 +132,14 @@ export default {
 
     const isVision = task === "deepCheck" && typeof input.image === "string" && input.image.startsWith("data:");
     const only = url.searchParams.get("only");
-    const paidFallback = env.PAID_FALLBACK_ENABLED === "1" || env.PAID_FALLBACK_ENABLED === "true";
 
     let chain;
     if (only) {
       chain = [only];
     } else if (task === "deepCheck") {
-      chain = [...VISION_FREE];
-      if (paidFallback) chain.push(VISION_PAID);
-      chain.push(...VISION_TEXT_FALLBACK); // last resort: text-only on a strong model
+      chain = [...VISION_FREE, ...VISION_TEXT_FALLBACK]; // text-only retry last
     } else {
-      chain = paidFallback ? [...TASK_MODELS[task], OR_PAID] : TASK_MODELS[task];
+      chain = TASK_MODELS[task];
     }
 
     // Cache by content. The image is part of the key, so an identical screenshot
@@ -168,6 +169,11 @@ export default {
 
     const errs = [];
     for (const model of chain) {
+      // Safety net: never call a paid OpenRouter model, whatever the chain says.
+      if (model.startsWith("openrouter:") && !model.endsWith(":free")) {
+        errs.push(`${model}: skipped (not a :free model)`);
+        continue;
+      }
       // Once we've dropped to the text-only fallback list, strip the image.
       const textOnly = VISION_TEXT_FALLBACK.includes(model);
       const msgs = textOnly
@@ -250,6 +256,30 @@ async function callModel(model, messages, temperature, maxTokens, env) {
       ? { inputTokens: data.usage.prompt_tokens ?? 0, outputTokens: data.usage.completion_tokens ?? 0 }
       : null,
   };
+}
+
+async function listFreeModels(env) {
+  if (!env.OPENROUTER_API_KEY) return json({ error: "OPENROUTER_API_KEY not set" }, 500);
+  let data;
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/models", {
+      headers: { "Authorization": `Bearer ${env.OPENROUTER_API_KEY}` },
+    });
+    data = await res.json();
+  } catch (e) {
+    return json({ error: String(e) }, 502);
+  }
+  const models = (data.data || [])
+    .filter((m) => Number(m?.pricing?.prompt || 0) === 0 && Number(m?.pricing?.completion || 0) === 0)
+    .map((m) => ({
+      id: `openrouter:${m.id}`,
+      vision: (m.architecture?.input_modalities || m.architecture?.modality || "").includes("image"),
+      context: m.context_length,
+    }));
+  return json({
+    free_text: models.filter((m) => !m.vision).map((m) => m.id),
+    free_vision: models.filter((m) => m.vision).map((m) => m.id),
+  });
 }
 
 function buildUserContent(prompt, input) {

@@ -6,17 +6,13 @@ preview_urls = false
 # Separate worker from Pitchwire's (pitchwire-ai) — nothing shared, no impact on it.
 #
 # Secrets (never in this file — set with `wrangler secret put`):
-#   OPENROUTER_API_KEY       openrouter.ai key (sk-or-v1-…) — many :free models; not CF-blocked
-#   NVIDIA_API_KEY           NVIDIA build.nvidia.com key (free; gpt-oss models only)
-#   ZAI_API_KEY              z.ai key (Aliyun-fronted → blocked from Cloudflare; kept for a non-CF host)
+#   OPENROUTER_API_KEY       openrouter.ai key (sk-or-v1-…). Only :free models are ever called.
+#   NVIDIA_API_KEY           NVIDIA build.nvidia.com key (free serverless gpt-oss models)
 #   SECONDLOOK_CLIENT_TOKEN  long random string the app sends as `Authorization: Bearer <...>`
-#                            (rotatable scoped token; NOT a provider key)
+#                            (rotatable scoped token; NOT a provider key) — already set
 
 [vars]
 RATE_LIMIT_PER_MIN = "20"
-# "1" appends a paid OpenRouter model to the tail of every failover chain once
-# the shared :free quota is spent. Needs OpenRouter credit. Leave off in dev.
-PAID_FALLBACK_ENABLED = "0"
 
 [observability]
 enabled = true
