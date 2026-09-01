@@ -68,7 +68,7 @@ struct DeepCheckSection: View {
                 .disabled(entitlements.isPlus)
             }
 
-            Text("Uses an internet connection. The model sees the screenshot and text as you sent them. Results are AI-generated and can be wrong.")
+            Text("Uses an internet connection. SecondLook strips SSNs and card/bank numbers from the text first; the screenshot is sent as-is. Results are AI-generated and can be wrong.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -164,7 +164,7 @@ private struct DeepCheckConsentSheet: View {
                         .font(.title3.weight(.semibold))
 
                     row("arrow.up.forward.app", "It sends the screenshot and the message text to SecondLook's AI backend so a vision model can read them directly.")
-                    row("lock.open", "Unlike your everyday check, this leaves your device. Don't run it on a message that contains your Social Security number, bank details, or ID — cover those first.")
+                    row("number.circle", "SecondLook removes Social Security, card, and bank numbers from the text before sending. The screenshot is sent as you took it — blur anything sensitive in it yourself first.")
                     row("sparkles", "The result is AI-generated. It can be wrong, and it never confirms that a company or person is legitimate or fake.")
                     row("hand.raised", "SecondLook's backend doesn't store the image or text beyond briefly caching the result. It's never used to identify you.")
 

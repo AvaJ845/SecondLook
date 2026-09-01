@@ -49,7 +49,7 @@ final class LLMLog {
 
     func record(_ entry: LLMLogEntry) {
         var entry = entry
-        entry.detail = entry.detail.map(Redaction.redact)   // never store a secret
+        entry.detail = entry.detail.map(Sanitizer.redact)   // never store a secret
         if Thread.isMainThread {
             ingest(entry)
         } else {

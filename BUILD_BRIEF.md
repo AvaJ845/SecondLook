@@ -133,10 +133,16 @@ device" tension — Mei signs off because no user content is ever in the payload
 > strengthen that claim.
 
 Verdicts:
-- **Redaction → a `Sanitized` boundary type** gating screen / history / AI
-  payloads; adversarial corpus; broaden patterns (bare + spaced SSN, cards,
-  accounts, DOB-in-prose); sanitize OCR text and the deep-check `payload["text"]`.
-  **SHIP — do first.** (`Kit/Redaction.swift:44`, `Kit/AI/DeepCheck.swift:66-68`)
+- **Redaction → a `Sanitized` boundary type** — ✅ **DONE.** `Kit/Sanitizer.swift`
+  (was `Redaction.swift`): `Sanitized` wrapper (only `Sanitizer.sanitized(_:)`
+  makes one); `RuleHit.init` sanitizes every quote so no detector can bypass it
+  (fixed the hand-built `personal_email` path); `DeepChecker.run` sanitizes
+  `payload["text"]` before it leaves the device. Patterns broadened: SSN any
+  separator / bare / labeled, cards (spaced/dashed/bare/amex), IBAN, labeled
+  bank/routing, numeric + prose DOB, plus the existing secret patterns.
+  19-case adversarial corpus + over-redaction guard + end-to-end engine test in
+  `SanitizerTests.swift`. Screenshot pixels still can't be scrubbed — consent
+  copy says so.
 - **Backend abuse → App Attest / DeviceCheck per-install credential + a Durable
   Object atomic rate limiter**; the plist token demoted to a bootstrap secret
   for `/v1/register`. **RESHAPE** — scoped first cut (DO limiter + bootstrapped

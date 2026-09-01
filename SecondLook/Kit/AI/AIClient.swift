@@ -18,7 +18,7 @@ protocol AITelemetry {
 
 struct LoggingTelemetry: AITelemetry {
     func record(_ event: AIEvent) {
-        let status = event.ok ? "ok" : "ERR(\(Redaction.redact(event.errorKind ?? "?")))"
+        let status = event.ok ? "ok" : "ERR(\(Sanitizer.redact(event.errorKind ?? "?")))"
         print("[AI] \(event.task.rawValue) tier=\(event.tier.rawValue) model=\(event.model) \(event.latencyMS)ms cached=\(event.cached) \(status)")
     }
 }
@@ -69,7 +69,7 @@ final class AIClient {
         gatewayOverride: AIGateway? = nil
     ) {
         self.configuration = configuration
-        Redaction.register(configuration.clientToken)
+        Sanitizer.register(configuration.clientToken)
         if let telemetry {
             self.telemetry = telemetry
         } else if let log {
@@ -83,7 +83,7 @@ final class AIClient {
     /// Swap the backend at runtime (e.g. after the user pastes a client token).
     func configure(_ configuration: AIConfiguration) {
         self.configuration = configuration
-        Redaction.register(configuration.clientToken)
+        Sanitizer.register(configuration.clientToken)
         self.gateway = Self.makeGateway(for: configuration)
     }
 

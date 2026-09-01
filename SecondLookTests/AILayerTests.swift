@@ -23,9 +23,9 @@ final class AILayerTests: XCTestCase {
     // MARK: Redaction of secrets
 
     func testRedactionRemovesRegisteredSecretAndBearer() {
-        Redaction.register("tok_supersecretvalue")
+        Sanitizer.register("tok_supersecretvalue")
         let line = "failed: Authorization: Bearer tok_supersecretvalue -> 401"
-        let out = Redaction.redact(line)
+        let out = Sanitizer.redact(line)
         XCTAssertFalse(out.contains("tok_supersecretvalue"))
         XCTAssertTrue(out.contains("redacted"))
     }

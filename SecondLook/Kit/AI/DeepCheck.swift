@@ -63,7 +63,11 @@ struct DeepChecker {
         guard ai.isConfigured else { throw DeepCheckError.notConfigured }
         guard input.hasContent else { throw DeepCheckError.noInput }
 
-        let text = input.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Sanitize BEFORE anything leaves the device. SSNs, card/bank numbers
+        // and dates of birth are stripped from the text payload here — the
+        // screenshot cannot be scrubbed (it's pixels), which the consent copy
+        // spells out.
+        let text = Sanitizer.sanitized(input.text.trimmingCharacters(in: .whitespacesAndNewlines)).value
         var payload: [String: String] = ["hiring_stage": input.stage.title]
         if !text.isEmpty { payload["text"] = String(text.prefix(6000)) }
         if let data = input.imageData, data.count <= Self.maxImageBytes {

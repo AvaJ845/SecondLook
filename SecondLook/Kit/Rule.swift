@@ -60,7 +60,7 @@ extension Rule {
                 let needle = phrase.lowercased()
                 guard message.lower.contains(needle) else { continue }
                 if let sentence = message.sentences.first(where: { $0.lowercased().contains(needle) }) {
-                    quotes.append(Redaction.redact(sentence))
+                    quotes.append(sentence)   // RuleHit.init sanitizes every quote
                 } else {
                     quotes.append("“…\(phrase)…”")
                 }
@@ -79,7 +79,7 @@ extension Rule {
             var quotes: [String] = []
             for phrase in hitPhrases {
                 if let sentence = message.sentences.first(where: { $0.lowercased().contains(phrase.lowercased()) }) {
-                    quotes.append(Redaction.redact(sentence))
+                    quotes.append(sentence)   // RuleHit.init sanitizes every quote
                 }
             }
             return RuleHit(quotes: quotes.isEmpty ? ["“…\(hitPhrases.joined(separator: " … "))…”"] : quotes.deduplicated())

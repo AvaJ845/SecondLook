@@ -85,10 +85,15 @@ enum HiringStage: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// A concrete match of one rule against the submitted text.
+/// A concrete match of one rule against the submitted text. Every quote is run
+/// through `Sanitizer` here — no detector can emit a raw snippet, whatever it
+/// passes to `init`.
 struct RuleHit: Equatable {
-    /// Redacted sentence(s) from the message that triggered the rule.
-    var quotes: [String]
+    let quotes: [String]
+
+    init(quotes: [String]) {
+        self.quotes = quotes.map { Sanitizer.sanitized($0).value }
+    }
 }
 
 /// A rule that fired, resolved against the chosen hiring stage.

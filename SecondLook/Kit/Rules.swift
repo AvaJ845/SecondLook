@@ -133,7 +133,7 @@ enum Rules {
                 let quote = message.sentences.first { sentence in
                     offerLanguage.contains { sentence.lowercased().contains($0) }
                 }
-                return RuleHit(quotes: [Redaction.redact(quote ?? "An offer was extended with no mention of a phone, video, or in-person interview.")])
+                return RuleHit(quotes: [quote ?? "An offer was extended with no mention of a phone, video, or in-person interview."])
             }
         ),
 
