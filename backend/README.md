@@ -33,41 +33,49 @@ model from naming or accusing any real company or person.
 (`GET /health` → `{"ok":true}`). `SECONDLOOK_CLIENT_TOKEN` is set and the app's
 `Config/AIConfig.plist` points at it.
 
-**Pending:** the OpenRouter key. Until it's added, `/v1/generate` returns
+**Pending:** the two provider keys. Until they're added, `/v1/generate` returns
 `502 all providers failed` and the app falls back to on-device text.
 
 ```sh
 cd backend
-npx wrangler secret put OPENROUTER_API_KEY --name secondlook-ai   # sk-or-v1-…
+npx wrangler secret put NVIDIA_API_KEY      --name secondlook-ai   # nvapi-…
+npx wrangler secret put OPENROUTER_API_KEY  --name secondlook-ai   # sk-or-v1-…
 # already set: SECONDLOOK_CLIENT_TOKEN
-# NVIDIA_API_KEY is not needed unless you re-add an `nvidia:` model to a chain.
 ```
 
 Verify (client token is in `Config/AIConfig.plist`):
 
 ```sh
 TOKEN=$(/usr/libexec/PlistBuddy -c 'Print :ClientToken' ../Config/AIConfig.plist)
+BASE=https://secondlook-ai.divine-mountain-8173.workers.dev
 
-# which free models this account can use (keeps the chains in worker.js current)
-curl -s https://secondlook-ai.divine-mountain-8173.workers.dev/v1/models \
-  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+# NVIDIA catalog — confirm the exact ids for kimi-k3 and GLM-5.3-Flash
+curl -s "$BASE/v1/models?provider=nvidia" -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+
+# OpenRouter free models (the fallback tier)
+curl -s "$BASE/v1/models" -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 
 # end-to-end text task
-curl -s https://secondlook-ai.divine-mountain-8173.workers.dev/v1/generate \
-  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+curl -s "$BASE/v1/generate" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"task":"plainSummary","tier":"fast","input":{"hiring_stage":"First contact","signals_that_fired":"Major red flag: Asks you to pay to get the job"},"prompt":"summarize"}'
 ```
 
-## Model chains (free only)
+## Model chains
 
-Chosen 2026-08-31 from this account's `/v1/models`. They drift — re-check and
-edit the constants at the top of `src/worker.js`, then redeploy.
+No paid spend: NVIDIA NIM serverless + OpenRouter `:free` only (a hard skip in
+the call loop blocks any non-`:free` OpenRouter id). Chosen 2026-08-31 — ids
+drift, so re-check with the `/v1/models` routes and edit the constants at the top
+of `src/worker.js`.
 
 | chain | models |
 | --- | --- |
-| text (fast) | nemotron-3.5-lightning → glm-5.2 → minimax-m2.7 → nemotron-3-super |
-| text (quality) | minimax-m2.7 → nemotron-3-ultra → glm-5.2 → nemotron-3-super |
-| deepCheck (vision) | gemma-4-31b → minimax-m3 → nemotron-3-nano-omni → gemma-4-26b → dots-3-note → (text-only retry) |
+| text (fast) | **glm-5.3-flash** → **kimi-k3** → glm-5.2:free → minimax-m2.7:free |
+| text (quality) | **kimi-k3** → **glm-5.3-flash** → minimax-m2.7:free → nemotron-3-ultra:free |
+| deepCheck (vision) | **kimi-k3** → gemma-4-31b:free → minimax-m3:free → nemotron-3-nano-omni:free → gemma-4-26b:free → (text-only retry on glm-5.3-flash) |
+
+The `nvidia:zai-org/glm-5.3-flash` and `nvidia:moonshotai/kimi-k3` ids are a best
+guess — run `/v1/models?provider=nvidia` and correct them if NVIDIA namespaces
+them differently. A wrong id just fails over to the next model.
 
 ## Redeploy
 

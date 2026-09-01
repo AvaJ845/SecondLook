@@ -6,10 +6,11 @@ preview_urls = false
 # Separate worker from Pitchwire's (pitchwire-ai) — nothing shared, no impact on it.
 #
 # Secrets (never in this file — set with `wrangler secret put`):
-#   OPENROUTER_API_KEY       openrouter.ai key (sk-or-v1-…). REQUIRED. Only :free models are called.
+#   NVIDIA_API_KEY           build.nvidia.com key (nvapi-…). REQUIRED — the chains lead with
+#                            NVIDIA NIM (kimi-k3, GLM-5.3-Flash).
+#   OPENROUTER_API_KEY       openrouter.ai key (sk-or-v1-…). REQUIRED — :free fallback models.
 #   SECONDLOOK_CLIENT_TOKEN  long random string the app sends as `Authorization: Bearer <...>`
 #                            (rotatable scoped token; NOT a provider key) — already set
-#   NVIDIA_API_KEY           OPTIONAL — only if you re-add an `nvidia:` model to a chain.
 
 [vars]
 RATE_LIMIT_PER_MIN = "20"

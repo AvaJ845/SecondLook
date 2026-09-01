@@ -26,36 +26,39 @@
  * or person in every task.
  */
 
-// ─── models — FREE ONLY, all via OpenRouter ───────────────────────────────────
-// Every id ends in ":free" (no credit; ~50 req/day/account shared across all
-// free models). No paid backstop, no PAID_FALLBACK flag — if a request can't be
-// served free it fails and the app falls back to its on-device result.
+// ─── models — no paid spend ───────────────────────────────────────────────────
+// Two providers, both free for this account:
+//   nvidia:  NVIDIA NIM serverless. Lead here — kimi-k3 and GLM-5.3-Flash are
+//            strong and fast. Ids verified via GET /v1/models?provider=nvidia.
+//   openrouter:  ":free" models only (no credit; ~50 req/day/account shared).
+//            A hard skip in the call loop blocks any openrouter id without ":free".
 //
-// Model ids drift fast. Refresh from the live catalog and update these:
-//   GET /v1/models   (this worker, authed) → this account's free text + vision ids
-// Chosen from that list on 2026-08-31.
-const GLM        = "openrouter:z-ai/glm-5.2:free";
-const MINIMAX    = "openrouter:minimax/minimax-m2.7:free";
-const NEM_LIGHT  = "openrouter:nvidia/nemotron-3.5-lightning:free";   // fast
-const NEM_SUPER  = "openrouter:nvidia/nemotron-3-super-120b-a12b:free";
-const NEM_ULTRA  = "openrouter:nvidia/nemotron-3-ultra-550b-a55b:free"; // strongest
+// Model ids drift fast. Refresh and edit these:
+//   GET /v1/models                     → OpenRouter free text + vision ids
+//   GET /v1/models?provider=nvidia     → NVIDIA NIM catalog
+// Chosen 2026-08-31.
+const NV_GLM_FLASH = "nvidia:zai-org/glm-5.3-flash";        // fast, strong — verify id
+const NV_KIMI      = "nvidia:moonshotai/kimi-k3";           // quality, multimodal — verify id
+const OR_GLM       = "openrouter:z-ai/glm-5.2:free";
+const OR_MINIMAX   = "openrouter:minimax/minimax-m2.7:free";
+const OR_NEM_ULTRA = "openrouter:nvidia/nemotron-3-ultra-550b-a55b:free";
 
-// Vision-capable, free. Text models can't read images, so if every vision model
-// fails we retry text-only on a strong free text model.
-const VISION_FREE = [
+// Vision-capable. kimi-k3 leads (NVIDIA, multimodal); OpenRouter free vision
+// models back it up. If every vision model fails we retry text-only.
+const VISION_MODELS = [
+  NV_KIMI,
   "openrouter:google/gemma-4-31b-it:free",
   "openrouter:minimax/minimax-m3:free",
   "openrouter:nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
   "openrouter:google/gemma-4-26b-a4b-it:free",
-  "openrouter:dots-studio/dots-3-note-preview:free",
 ];
-const VISION_TEXT_FALLBACK = [NEM_ULTRA, GLM, MINIMAX];
+const VISION_TEXT_FALLBACK = [NV_GLM_FLASH, OR_GLM, OR_MINIMAX];
 
 const TASK_MODELS = {
-  plainSummary:   [NEM_LIGHT, GLM, MINIMAX, NEM_SUPER],
-  verifyEmployer: [NEM_LIGHT, GLM, MINIMAX, NEM_SUPER],
-  replyCoach:     [MINIMAX, NEM_ULTRA, GLM, NEM_SUPER],
-  deepCheck:      VISION_FREE, // + VISION_TEXT_FALLBACK appended at request time
+  plainSummary:   [NV_GLM_FLASH, NV_KIMI, OR_GLM, OR_MINIMAX],
+  verifyEmployer: [NV_GLM_FLASH, NV_KIMI, OR_GLM, OR_MINIMAX],
+  replyCoach:     [NV_KIMI, NV_GLM_FLASH, OR_MINIMAX, OR_NEM_ULTRA],
+  deepCheck:      VISION_MODELS, // + VISION_TEXT_FALLBACK appended at request time
 };
 
 const MAX_TOKENS = {
@@ -118,9 +121,13 @@ export default {
     const ip = request.headers.get("CF-Connecting-IP") || "anon";
     if (await rateLimited(ip, env)) return json({ error: "rate limited" }, 429);
 
-    // Debug helper (GET or POST): the free OpenRouter models that can do our
-    // tasks, so the chains above can be kept current.
-    if (url.pathname === "/v1/models") return listFreeModels(env);
+    // Debug helper (GET or POST): the models this account can use, so the chains
+    // above can be kept current. ?provider=nvidia lists NVIDIA NIM's catalog.
+    if (url.pathname === "/v1/models") {
+      return url.searchParams.get("provider") === "nvidia"
+        ? listNvidiaModels(env)
+        : listFreeModels(env);
+    }
 
     if (url.pathname !== "/v1/generate") return json({ error: "not found" }, 404);
     if (request.method !== "POST") return json({ error: "POST only" }, 405);
@@ -279,6 +286,27 @@ async function listFreeModels(env) {
   return json({
     free_text: models.filter((m) => !m.vision).map((m) => m.id),
     free_vision: models.filter((m) => m.vision).map((m) => m.id),
+  });
+}
+
+async function listNvidiaModels(env) {
+  if (!env.NVIDIA_API_KEY) return json({ error: "NVIDIA_API_KEY not set" }, 500);
+  let data;
+  try {
+    const res = await fetch("https://integrate.api.nvidia.com/v1/models", {
+      headers: { "Authorization": `Bearer ${env.NVIDIA_API_KEY}` },
+    });
+    data = await res.json();
+  } catch (e) {
+    return json({ error: String(e) }, 502);
+  }
+  const ids = (data.data || []).map((m) => `nvidia:${m.id}`).sort();
+  return json({
+    count: ids.length,
+    // surface the two we want to wire, if present
+    kimi: ids.filter((i) => i.toLowerCase().includes("kimi")),
+    glm: ids.filter((i) => i.toLowerCase().includes("glm")),
+    all: ids,
   });
 }
 
