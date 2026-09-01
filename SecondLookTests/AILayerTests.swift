@@ -80,12 +80,11 @@ final class AILayerTests: XCTestCase {
         - Find the job on the company's real careers page
         - Confirm the recruiter on LinkedIn
         """
-        let result = DeepChecker.parse(raw, model: "test-model")
+        let result = DeepChecker.parse(raw)
         XCTAssertEqual(result.read, .doesNotLineUp)
         XCTAssertEqual(result.concerns.count, 2)
         XCTAssertTrue(result.reply.contains("video call"))
         XCTAssertEqual(result.verifySteps.count, 2)
-        XCTAssertEqual(result.model, "test-model")
     }
 
     func testDeepCheckParsesCleanResult() {
@@ -97,7 +96,7 @@ final class AILayerTests: XCTestCase {
         VERIFY:
         - Double-check the sender's email domain
         """
-        let result = DeepChecker.parse(raw, model: "m")
+        let result = DeepChecker.parse(raw)
         XCTAssertEqual(result.read, .consistent)
         XCTAssertTrue(result.concerns.isEmpty)
     }

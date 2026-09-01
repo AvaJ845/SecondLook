@@ -180,6 +180,49 @@ Verdicts:
   - 7 `ShareCardTests` (no content leak, capped findings, clean/strong copy,
     stage label, plain-text). Verified visually in the sim.
 
+## Cloud security pass (Fellows) — 2026-08-31
+
+Reviewed `backend/src/worker.js`. Fixed:
+- **Install-token farming** — `/v1/register` had no rate limit, so a leaked
+  bootstrap token could mint unlimited install ids and sidestep the
+  per-identity limiter. Now DO-rate-limited per IP (4/min, 20/day).
+- **Vestigial `/v1/register/challenge`** removed — App-Attest-style challenge,
+  unused by the DeviceCheck flow.
+- **Info leak** — the "all providers failed" 502 echoed upstream error text and
+  model ids to the client. Now logged server-side only; client gets a bare error.
+- **Body-size guard** — `Content-Length > 3 MB` → 413 (the app caps images ~0.9 MB).
+- **Timing-safe** bootstrap-token comparison in `resolveIdentity` / `/v1/register`.
+- **DO limiter** — `minLimit`/`dayLimit` now validated + defaulted.
+Deferred (unchanged): full App Attest per-key crypto; server-side quota mirror;
+JWT `jti`/revocation on the 24h install token (rate-limited, carries no PII).
+
+## Dead code / docs cleanup — 2026-08-31
+
+- `DeepCheckResult.model` + `.rawText`, `DeepChecker.parse(_:model:)` param —
+  removed (model is already in AIClient telemetry).
+- `SubscriptionManager.subscriptionGroupID` — removed (StoreKit resolves the
+  group from the products).
+- `OnboardingHand` — rewritten as a single SF Symbol per screen (`hand.wave.fill`
+  → `hand.point.up.left.fill` → `hand.raised.fill` → `hand.tap.fill`) with the
+  Navy→Teal gradient, matching the Hummingbird onboarding style. Dropped the
+  geometric composite shape, the mint disc, and the coral wave arcs.
+- Marketing/legal site added at `docs/` (index / privacy / terms), modeled on
+  Hummingbird's — serve via GitHub Pages at `avaj845.github.io/SecondLook/`.
+
+## Fellow verdict — is the app at its North Star?
+
+> **North Star:** the standard check is on-device, explainable, and makes zero
+> network requests; the optional AI tier never breaks the free private product
+> or adds an account; a share moves a redacted artifact, never the message.
+
+**At the North Star.** The rule engine is pure and offline (`RuleEngine` — no
+I/O); the `Sanitizer` boundary is enforced by `RuleHit.init` and on the
+deep-check payload; the AI tier degrades to deterministic templates and never
+gates safety; the backend uses per-install tokens with **no account**; the
+`ShareCard` has no field that can hold message content. Remaining gaps are
+config, not architecture: create the DeviceCheck key, wire the real App Store
+URL, publish `docs/`.
+
 ## Open questions
 
 - Ship the domain reference list in-app (current) vs. a signed, updatable bundle?

@@ -16,8 +16,6 @@ final class SubscriptionManager {
         static let all: Set<String> = [monthly, yearly]
     }
 
-    static let subscriptionGroupID = "secondlook_plus" // App Store Connect group reference name: "SecondLook Plus"
-
     enum PurchaseOutcome: Equatable {
         case success
         case pending          // Ask to Buy / SCA — resolves later via updates

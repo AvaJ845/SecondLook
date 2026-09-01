@@ -26,17 +26,17 @@ stripped by the app first (`SecondLook/Kit/Sanitizer.swift`).
 ## Abuse resistance (P0 #2)
 
 ```
-app ─GET  /v1/register/challenge────▶  { challenge }
 app ─POST /v1/register──────────────▶  { token, expiresAt }
-     Bearer <BOOTSTRAP>
-     { installId, deviceToken? }        deviceToken = Apple DeviceCheck output
-                                        · verified with Apple when DEVICECHECK_*
-                                          + APPLE_TEAM_ID secrets are set
-                                        · until then, accepted on the bootstrap
-                                          token alone (see the log line)
+     Bearer <BOOTSTRAP>                 · rate limited per IP (4/min, 20/day) so a
+     { installId, deviceToken? }          leaked bootstrap token can't farm ids
+                                        · deviceToken = Apple DeviceCheck output,
+                                          verified with Apple when DEVICECHECK_*
+                                          + APPLE_TEAM_ID are set; until then
+                                          accepted on the bootstrap token alone
 app ─POST /v1/generate──────────────▶  Bearer <install token>  (or bootstrap)
-                                        every call → per-identity Durable Object
-                                        rate limiter (atomic, global)
+                                        · Content-Length > 3 MB → 413
+                                        · every call → per-identity Durable
+                                          Object rate limiter (atomic, global)
 ```
 
 - The **bootstrap token** (`SECONDLOOK_CLIENT_TOKEN`, shipped in the app)

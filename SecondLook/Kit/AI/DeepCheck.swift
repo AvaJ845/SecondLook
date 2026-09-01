@@ -33,8 +33,6 @@ struct DeepCheckResult: Equatable {
     var concerns: [String]
     var reply: String
     var verifySteps: [String]
-    var model: String
-    var rawText: String
 }
 
 enum DeepCheckError: Error, LocalizedError {
@@ -82,7 +80,7 @@ struct DeepChecker {
 
         do {
             let response = try await ai.run(request)
-            return Self.parse(response.text, model: response.model)
+            return Self.parse(response.text)
         } catch {
             if error.isCancellation { throw error }
             let why = (error as? AIGatewayError).map(Self.describe) ?? "The AI backend couldn't be reached. Try again in a moment."
@@ -100,7 +98,7 @@ struct DeepChecker {
 
     // MARK: Parsing
 
-    static func parse(_ raw: String, model: String) -> DeepCheckResult {
+    static func parse(_ raw: String) -> DeepCheckResult {
         let lines = raw.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }
         var readLine = ""
         var concerns: [String] = []
@@ -142,9 +140,7 @@ struct DeepChecker {
             readLine: readLine.isEmpty ? "Here's the deep check." : readLine,
             concerns: filteredConcerns,
             reply: reply.trimmingCharacters(in: .whitespaces),
-            verifySteps: verify,
-            model: model,
-            rawText: raw
+            verifySteps: verify
         )
     }
 

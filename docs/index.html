@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecondLook — On-device job-scam checks before you reply</title>
+<meta name="description" content="SecondLook checks a job message or screenshot for scam patterns — entirely on your iPhone. Explainable flags, not a black-box score. No account, no tracking. Your standard check never leaves the device.">
+<link rel="icon" type="image/png" href="img/icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SecondLook — take a second look before you reply">
+<meta property="og:description" content="On-device job-message scam checks. Explainable flags, not a score. No account, no tracking.">
+<meta property="og:image" content="img/icon.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="SecondLook — take a second look before you reply">
+<meta name="twitter:description" content="On-device job-message scam checks. Explainable flags, not a score. No account, no tracking.">
+<meta name="twitter:image" content="img/icon.png">
+<style>
+  :root{
+    --bg:#F7F8FA; --panel:#ffffff; --ink:#172033; --muted:#747B87; --line:#e3e7ec;
+    --accent:#2f9e8c; --accent2:#39B7A5; --mint:#DDF5EF; --coral:#F28B7A;
+    --hero1:#172033; --hero2:#1d3b3a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0c1017; --panel:#141a24; --ink:#eef2f6; --muted:#9aa3b0; --line:#232c39;
+      --accent:#39B7A5; --accent2:#4fd0bd; --mint:#123433; --hero1:#0a0e15; --hero2:#122a29; }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.55}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+  a{color:var(--accent2);text-decoration:none}
+
+  .hero{background:linear-gradient(160deg,var(--hero1),var(--hero2));color:#fff;
+    padding:74px 0 62px;text-align:center}
+  .hero .wrap{display:flex;flex-direction:column;align-items:center;gap:15px}
+  .appicon{width:104px;height:104px;border-radius:24px;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+  h1{font-size:clamp(34px,6vw,52px);margin:6px 0 0;letter-spacing:-.02em}
+  .tag{font-size:clamp(17px,2.6vw,21px);color:#dbeeea;max-width:32ch;margin:0}
+  .sub{color:#a7c7c1;max-width:54ch;margin:0;font-size:15px}
+  .pill{margin-top:8px;display:inline-flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
+    color:#fff;padding:10px 18px;border-radius:999px;font-weight:600;font-size:14.5px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#39B7A5;box-shadow:0 0 0 4px rgba(57,183,165,.25)}
+  .price{color:#a7c7c1;font-size:13.5px;margin:6px 0 0}
+
+  section{padding:58px 0}
+  h2{font-size:clamp(24px,4vw,32px);letter-spacing:-.02em;margin:0 0 8px;text-align:center;text-wrap:balance}
+  .lead{color:var(--muted);text-align:center;max-width:62ch;margin:0 auto 32px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px}
+  .card h3{margin:0 0 6px;font-size:17px}
+  .card p{margin:0;color:var(--muted);font-size:14.5px}
+  .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;margin-bottom:14px;
+    background:var(--mint);color:var(--accent);font-size:20px}
+
+  .claim{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:30px;max-width:820px;margin:0 auto}
+  .claim ul{margin:14px 0 0;padding-left:1.1rem;color:var(--muted)}
+  .claim li{margin:8px 0}
+  .claim li strong{color:var(--ink)}
+
+  .pledge{background:var(--panel);border:1px solid var(--line);border-radius:22px;
+    padding:32px;text-align:center;max-width:760px;margin:0 auto}
+  .pledge strong{color:var(--accent)}
+
+  .steps{counter-reset:s;display:grid;gap:14px;max-width:640px;margin:0 auto}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;
+    display:flex;gap:14px;align-items:flex-start}
+  .step::before{counter-increment:s;content:counter(s);flex:0 0 30px;height:30px;border-radius:50%;
+    background:var(--mint);color:var(--accent);font-weight:700;display:grid;place-items:center;font-size:15px}
+  .step p{margin:0;color:var(--muted);font-size:14.5px}
+  .step b{color:var(--ink)}
+
+  footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--muted);font-size:13.5px;text-align:center}
+  footer a{color:var(--muted);text-decoration:underline}
+  footer .links{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="appicon" src="img/icon.png" alt="SecondLook app icon">
+    <h1>SecondLook</h1>
+    <p class="tag">Before you reply, take a second look.</p>
+    <p class="sub">Paste a recruiter message or drop in a screenshot. SecondLook checks it against the patterns behind fake job offers — on your device — and tells you, in plain words, what's unusual for your hiring stage.</p>
+    <span class="pill"><span class="dot"></span>Coming soon to the App Store</span>
+    <p class="price">Free · optional SecondLook Plus $3.99/mo or $24.99/yr · 7-day free trial</p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Not another scam scanner</h2>
+    <p class="lead">Job scams hit 1 in 3 U.S. adults — and nearly half of Gen Z — with an average loss around $8,900. Most scam apps run your message on their servers and hand back a mystery number. SecondLook does the opposite.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="ic">🔒</div>
+        <h3>Your standard check stays on your device</h3>
+        <p>Text you paste and screenshots you import are read entirely on your iPhone with Apple's Vision framework. No account, no sign-in, no analytics SDK.</p>
+      </div>
+      <div class="card">
+        <div class="ic">📋</div>
+        <h3>Explainable, not a score</h3>
+        <p>Every flag says exactly what was found, why it's unusual, and what to do next. No black-box "scam score" to trust blindly.</p>
+      </div>
+      <div class="card">
+        <div class="ic">📅</div>
+        <h3>Weighed against your hiring stage</h3>
+        <p>An SSN request is routine onboarding paperwork — but alarming at first contact. SecondLook scores the same ask differently depending on where you are.</p>
+      </div>
+      <div class="card">
+        <div class="ic">🔗</div>
+        <h3>Link check, offline</h3>
+        <p>Domains in the message are compared on-device to a bundled list of real careers and applicant-tracking sites, and checked for lookalikes like <code>amaz0n-hiring.com</code>. SecondLook never opens the links.</p>
+      </div>
+      <div class="card">
+        <div class="ic">✎</div>
+        <h3>Sensitive numbers are stripped</h3>
+        <p>Before any snippet is shown back to you — or sent on the optional Deep AI Check — SecondLook removes SSNs, card and bank numbers, and dates of birth, on your device.</p>
+      </div>
+      <div class="card">
+        <div class="ic">↗</div>
+        <h3>Share the check, not the message</h3>
+        <p>Forward a result to a friend who's job hunting. The card carries the flags and the advice — never the message text, names, or links.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="lead">Ten seconds, before you send money, documents, or personal numbers.</p>
+    <div class="steps">
+      <div class="step"><p><b>Bring the message in.</b> Paste text, import a screenshot, use the share sheet from Mail or Messages, or run the "Check this with SecondLook" Shortcut.</p></div>
+      <div class="step"><p><b>Pick your hiring stage</b> — first contact, interviewing, offer, or onboarding — or leave it as "not sure."</p></div>
+      <div class="step"><p><b>Read the report.</b> An overall read plus an itemized list of what's unusual, each with a plain-language reason and a next step.</p></div>
+      <div class="step"><p><b>Optionally, go deeper.</b> "Deep AI Check" sends the screenshot and text to an AI model for a closer read — only when you tap it, after a one-time explanation.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <h2>The claim we can make that the others can't</h2>
+    <p class="lead">SecondLook is the only job-scam checker that can honestly say all of this at once:</p>
+    <div class="claim">
+      <ul>
+        <li>The <strong>standard check runs entirely on your device</strong>.</li>
+        <li>The shipping app makes <strong>zero network requests</strong> for the standard check.</li>
+        <li>There is <strong>no analytics or advertising SDK</strong>, and no account.</li>
+        <li>You get <strong>named rules with reasons</strong>, not a risk number.</li>
+        <li><strong>Message content is never sent</strong> to a server unless you choose Deep AI Check — and even then SSNs and card/bank numbers are stripped first.</li>
+      </ul>
+      <p style="color:var(--muted);font-size:14px;margin:16px 0 0">The paid incumbents can't match this — their analysis <em>is</em> the server call.</p>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="pledge">
+      <h2 style="margin-bottom:12px">The honesty pledge</h2>
+      <p style="color:var(--muted);margin:0">
+        SecondLook <strong>flags patterns</strong> commonly seen in job scams. It <strong>cannot confirm</strong> that any message, company, or person is legitimate or fraudulent, and a clean result is not a guarantee. When money, documents, or personal numbers are involved, verify the employer independently. To report a job scam in the U.S., visit <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener">reportfraud.ftc.gov</a>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="links">
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Use</a>
+      <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener">Report a job scam</a>
+      <a href="https://www.identitytheft.gov" target="_blank" rel="noopener">identitytheft.gov</a>
+    </div>
+    <div>© AvaResearch LLC · SecondLook · Flags patterns, not a verdict.</div>
+  </div>
+</footer>
+
+</body>
+</html>

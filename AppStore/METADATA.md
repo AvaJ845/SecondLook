@@ -83,9 +83,9 @@ First release. Paste a job message or import a screenshot, pick your hiring stag
 
 ## URLs
 
-- **Support / Marketing:** https://avaj845.github.io/SecondLook/  *(to publish)*
-- **Privacy Policy:** https://avaj845.github.io/SecondLook/privacy.html  *(to publish)*
-- **Terms of Use (EULA):** Apple standard EULA, or https://avaj845.github.io/SecondLook/terms.html
+- **Support / Marketing:** https://avaj845.github.io/SecondLook/ (`docs/` in the repo — enable GitHub Pages on the `dev` branch `/docs` folder)
+- **Privacy Policy:** https://avaj845.github.io/SecondLook/privacy.html
+- **Terms of Use (EULA):** https://avaj845.github.io/SecondLook/terms.html (or Apple standard EULA)
 
 ## Screenshots (6.9" — 1320×2868) — Conversion
 

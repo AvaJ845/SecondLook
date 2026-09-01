@@ -143,8 +143,6 @@ struct OnboardingPage {
 
 private struct OnboardingPageView: View {
     let page: OnboardingPage
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var appeared = false
 
     var body: some View {
         ScrollView {
@@ -152,8 +150,7 @@ private struct OnboardingPageView: View {
                 Spacer(minLength: 12)
 
                 OnboardingHand(gesture: page.gesture)
-                    .scaleEffect(appeared || reduceMotion ? 1 : 0.9)
-                    .opacity(appeared || reduceMotion ? 1 : 0)
+                    .padding(.top, 24)
 
                 VStack(spacing: 14) {
                     Text(page.headline)
@@ -188,10 +185,6 @@ private struct OnboardingPageView: View {
             .padding(.vertical, 12)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .onAppear {
-            guard !reduceMotion else { appeared = true; return }
-            withAnimation(.easeOut(duration: 0.5).delay(0.05)) { appeared = true }
-        }
     }
 }
 

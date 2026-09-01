@@ -160,12 +160,17 @@ async function handle(request, env, ctx) {
     const ip = request.headers.get("CF-Connecting-IP") || "anon";
 
     // ── Registration: bootstrap-authed, mints an install token ────────────────
-    if (url.pathname === "/v1/register/challenge") {
-      return json({ challenge: crypto.randomUUID(), ts: Date.now() });
-    }
     if (url.pathname === "/v1/register") {
-      if (bearer !== env.SECONDLOOK_CLIENT_TOKEN) return json({ error: "unauthorized" }, 401);
       if (request.method !== "POST") return json({ error: "POST only" }, 405);
+      if (!timingSafeEqual(bearer, env.SECONDLOOK_CLIENT_TOKEN || "")) {
+        return json({ error: "unauthorized" }, 401);
+      }
+      // Cap install-token minting per IP so a leaked bootstrap token can't farm
+      // fresh identities to sidestep the per-identity limit below.
+      const reg = await checkRateLimit(env, `reg:${ip}`, { minLimit: 4, dayLimit: 20 });
+      if (!reg.allowed) {
+        return json({ error: "rate limited", scope: reg.scope }, 429, 0, { "Retry-After": String(reg.retryAfter || 60) });
+      }
       return registerInstall(request, env, ip);
     }
 
@@ -181,6 +186,11 @@ async function handle(request, env, ctx) {
 
     if (url.pathname !== "/v1/generate") return json({ error: "not found" }, 404);
     if (request.method !== "POST") return json({ error: "POST only" }, 405);
+
+    // Body-size guard — the app caps deepCheck images at ~0.9 MB; anything much
+    // bigger is abuse. 3 MB leaves generous headroom for base64 overhead.
+    const contentLength = Number(request.headers.get("Content-Length") || 0);
+    if (contentLength > 3_000_000) return json({ error: "payload too large" }, 413);
 
     let body;
     try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
@@ -263,7 +273,10 @@ async function handle(request, env, ctx) {
         if (e.status === 401 || e.status === 403) break;
       }
     }
-    return json({ error: "all providers failed", detail: errs }, 502);
+    // Don't echo upstream provider error text / model ids back to the client.
+    if (only) return json({ error: "all providers failed", detail: errs }, 502);
+    console.log("all providers failed:", errs.join(" | "));
+    return json({ error: "all providers failed" }, 502);
 }
 
 async function callModel(model, messages, temperature, maxTokens, env) {
@@ -386,7 +399,7 @@ async function resolveIdentity(bearer, env, ip) {
   if (!bearer) return null;
   const claims = await verifyInstallToken(bearer, env);
   if (claims) return { kind: "install", key: `inst:${claims.sub}` };
-  if (bearer === env.SECONDLOOK_CLIENT_TOKEN) return { kind: "bootstrap", key: `boot:${ip}` };
+  if (timingSafeEqual(bearer, env.SECONDLOOK_CLIENT_TOKEN || "")) return { kind: "bootstrap", key: `boot:${ip}` };
   return null;
 }
 
@@ -492,7 +505,9 @@ export class RateLimiter {
   constructor(ctx) { this.ctx = ctx; }
 
   async fetch(request) {
-    const { minLimit, dayLimit } = await request.json();
+    const parsed = await request.json().catch(() => ({}));
+    const minLimit = Number.isFinite(parsed.minLimit) ? parsed.minLimit : 10;
+    const dayLimit = Number.isFinite(parsed.dayLimit) ? parsed.dayLimit : 100;
     const now = Date.now();
     const nowSec = Math.floor(now / 1000);
     const minKey = `m:${Math.floor(now / 60000)}`;
