@@ -141,6 +141,18 @@ const LIMITS = {
 
 export default {
   async fetch(request, env, ctx) {
+    try {
+      return await handle(request, env, ctx);
+    } catch (e) {
+      // A thrown exception would otherwise surface as an opaque Cloudflare 1101
+      // that the app can't parse. Return clean JSON so it can fall back cleanly.
+      console.log("unhandled:", e && (e.stack || e.message || String(e)));
+      return json({ error: "internal error" }, 500);
+    }
+  },
+};
+
+async function handle(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") return json({ ok: true, worker: "secondlook-ai" });
 
@@ -195,7 +207,7 @@ export default {
     if (only) {
       chain = [only];
     } else if (task === "deepCheck") {
-      chain = [...VISION_FREE, ...VISION_TEXT_FALLBACK]; // text-only retry last
+      chain = [...VISION_MODELS, ...VISION_TEXT_FALLBACK]; // text-only retry last
     } else {
       chain = TASK_MODELS[task];
     }
@@ -252,8 +264,7 @@ export default {
       }
     }
     return json({ error: "all providers failed", detail: errs }, 502);
-  },
-};
+}
 
 async function callModel(model, messages, temperature, maxTokens, env) {
   let baseURL, apiKey, realModel;
