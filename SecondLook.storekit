@@ -1,0 +1,91 @@
+{
+  "identifier" : "A1F52F6B-B163-43CF-A9E7-7083FBC292E7",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6740000000",
+    "_developerTeamID" : "0000000000",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "470EF1BE-975D-4CBB-A3A1-C04264FF205B",
+      "localizations" : [
+
+      ],
+      "name" : "SecondLook Plus",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "5.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "29F1395B-3337-4559-BBDD-F0C2A3488FC4",
+          "introductoryOffer" : {
+            "internalID" : "8FF677EB-8EC1-4CF4-8DD6-590D8AF4F50A",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Deeper Deep AI Checks, full history, and more detailed explanations.",
+              "displayName" : "SecondLook Plus (Monthly)",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.avaresearch.secondlook.plus.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "SecondLook Plus Monthly",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "49.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "017FF302-A763-4167-A8A8-90A7D21E2102",
+          "introductoryOffer" : {
+            "internalID" : "15F0616A-4FFF-44EC-8350-78F0298FE7FF",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Deeper Deep AI Checks, full history, and more detailed explanations. Best value.",
+              "displayName" : "SecondLook Plus (Yearly)",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.avaresearch.secondlook.plus.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "SecondLook Plus Yearly",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

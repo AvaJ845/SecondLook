@@ -112,6 +112,9 @@ struct ReportView: View {
         ReportView(report: RuleEngine.analyze(text: SampleMessages.all[0].text, stage: .firstContact))
             .environment(HistoryStore(defaults: UserDefaults(suiteName: "preview")!))
             .environment(AIClient())
+            .environment(Entitlements())
+            .environment(SubscriptionManager(entitlements: Entitlements()))
+            .environment(DeepCheckQuota())
     }
     .tint(Palette.accent)
 }

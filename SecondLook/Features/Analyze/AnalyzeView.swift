@@ -2,9 +2,16 @@ import SwiftUI
 import PhotosUI
 
 struct AnalyzeView: View {
+    @Environment(Entitlements.self) private var entitlements
     @State private var model = AnalyzeModel()
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var editorFocused: Bool
+
+    @AppStorage("secondlook.firstcheck.completed") private var firstCheckCompleted = false
+    @AppStorage("secondlook.upsell.shown") private var upsellShown = false
+    @State private var activeSheet: ActiveSheet?
+
+    private enum ActiveSheet: Int, Identifiable { case upsell, paywall; var id: Int { rawValue } }
 
     var body: some View {
         NavigationStack {
@@ -53,6 +60,24 @@ struct AnalyzeView: View {
             .task(id: photoItem) {
                 await model.loadImage(photoItem)
             }
+            .onChange(of: model.report == nil) { wasReportShowing, reportGone in
+                // Returned from the first completed check → offer Plus, once.
+                if reportGone, firstCheckCompleted, !upsellShown, !entitlements.isPlus {
+                    upsellShown = true
+                    activeSheet = .upsell
+                }
+            }
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .upsell:
+                    PlusUpsellSheet(
+                        onTryPlus: { activeSheet = .paywall },
+                        onDismiss: { activeSheet = nil }
+                    )
+                case .paywall:
+                    PaywallView(reason: .afterFirstCheck)
+                }
+            }
             #if DEBUG
             .task {
                 if ProcessInfo.processInfo.arguments.contains("-demo-report"), model.report == nil {
@@ -69,7 +94,7 @@ struct AnalyzeView: View {
             Text("Paste a job message or drop in a screenshot. SecondLook checks it against the patterns behind fake job offers and explains what it finds.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Label("Everything is checked on your device. Nothing is uploaded.", systemImage: "lock.fill")
+            Label("Your standard check stays on your device. Deep AI Check is optional and asks first.", systemImage: "lock.fill")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -137,6 +162,7 @@ struct AnalyzeView: View {
         Button {
             editorFocused = false
             model.analyze()
+            if model.report != nil { firstCheckCompleted = true }
         } label: {
             Text("Take a second look")
                 .font(.headline)
@@ -177,5 +203,8 @@ struct AnalyzeView: View {
     AnalyzeView()
         .environment(HistoryStore(defaults: UserDefaults(suiteName: "preview")!))
         .environment(AIClient())
+        .environment(Entitlements())
+        .environment(SubscriptionManager(entitlements: Entitlements()))
+        .environment(DeepCheckQuota())
         .tint(Palette.accent)
 }

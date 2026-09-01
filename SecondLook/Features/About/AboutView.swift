@@ -3,7 +3,10 @@ import SwiftUI
 struct AboutView: View {
     @Environment(AIClient.self) private var ai
     @Environment(LLMLog.self) private var llmLog
+    @Environment(Entitlements.self) private var entitlements
+    @Environment(DeepCheckQuota.self) private var quota
     @AppStorage("secondlook.deepcheck.consented") private var deepCheckConsented = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -12,11 +15,35 @@ struct AboutView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("SecondLook")
                             .font(.title3.weight(.semibold))
-                        Text("Share a job message in, get a plain-language read on what's unusual for where you are in the hiring process — before you reply.")
+                        Text("Before you reply, take a second look. SecondLook helps you spot unusual patterns in job messages before you send money, documents, or personal information.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 4)
+                }
+
+                Section("Plan") {
+                    HStack {
+                        Label(entitlements.plan.displayName, systemImage: entitlements.isPlus ? "star.circle.fill" : "person.circle")
+                        Spacer()
+                        Text(entitlements.isPlus ? "Active" : "Free")
+                            .font(.footnote)
+                            .foregroundStyle(entitlements.isPlus ? Palette.brandTeal : .secondary)
+                    }
+                    Text(quota.statusLine(plan: entitlements.plan))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if entitlements.isPlus {
+                        Link(destination: URL(string: "https://apps.apple.com/account/subscriptions")!) {
+                            Label("Manage subscription", systemImage: "arrow.up.right.square")
+                        }
+                    } else {
+                        Button {
+                            showPaywall = true
+                        } label: {
+                            Label("Upgrade to SecondLook Plus", systemImage: "star")
+                        }
+                    }
                 }
 
                 Section("How it works") {
@@ -85,6 +112,9 @@ struct AboutView: View {
                 }
             }
             .navigationTitle("About")
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(reason: .general)
+            }
         }
     }
 
@@ -101,4 +131,7 @@ struct AboutView: View {
     AboutView()
         .environment(AIClient())
         .environment(LLMLog())
+        .environment(Entitlements())
+        .environment(SubscriptionManager(entitlements: Entitlements()))
+        .environment(DeepCheckQuota())
 }

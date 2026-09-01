@@ -7,12 +7,17 @@ struct DeepCheckSection: View {
     let input: DeepCheckInput
 
     @Environment(AIClient.self) private var ai
+    @Environment(Entitlements.self) private var entitlements
+    @Environment(DeepCheckQuota.self) private var quota
     @AppStorage("secondlook.deepcheck.consented") private var consented = false
 
     @State private var result: DeepCheckResult?
     @State private var loading = false
     @State private var errorText: String?
     @State private var showConsent = false
+    @State private var showPaywall = false
+
+    private var canRun: Bool { quota.canRun(plan: entitlements.plan) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -22,10 +27,14 @@ struct DeepCheckSection: View {
             if let result {
                 DeepCheckResultView(result: result)
             } else {
-                Text("Send this screenshot and message text to SecondLook's AI backend for a closer read by a model that can look at the image itself. Your everyday check above never does this.")
+                Text("Send this screenshot and message text to SecondLook's AI backend for a closer read by a model that can look at the image itself. Your standard check above never does this.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+
+            Text(quota.statusLine(plan: entitlements.plan))
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             if let errorText {
                 Label(errorText, systemImage: "exclamationmark.circle")
@@ -33,20 +42,33 @@ struct DeepCheckSection: View {
                     .foregroundStyle(Palette.color(for: .serious))
             }
 
-            Button {
-                if consented { run() } else { showConsent = true }
-            } label: {
-                HStack {
-                    if loading { ProgressView().controlSize(.small) }
-                    Text(loading ? "Checking…" : (result == nil ? "Run deep check" : "Run again"))
-                        .font(.subheadline.weight(.medium))
+            if canRun {
+                Button {
+                    if consented { run() } else { showConsent = true }
+                } label: {
+                    HStack {
+                        if loading { ProgressView().controlSize(.small) }
+                        Text(loading ? "Checking…" : (result == nil ? "Run deep check" : "Run again"))
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
+                .buttonStyle(.bordered)
+                .disabled(loading || !input.hasContent)
+            } else {
+                Button {
+                    showPaywall = true
+                } label: {
+                    Text(entitlements.isPlus ? "You're out until next month" : "Get more with SecondLook Plus")
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Palette.brandTeal)
+                .disabled(entitlements.isPlus)
             }
-            .buttonStyle(.bordered)
-            .disabled(loading || !input.hasContent)
 
-            Text("Uses an internet connection. A redacted copy is not made — the model sees the screenshot and text as-is. Results are AI-generated and can be wrong.")
+            Text("Uses an internet connection. The model sees the screenshot and text as you sent them. Results are AI-generated and can be wrong.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -57,15 +79,21 @@ struct DeepCheckSection: View {
                 onCancel: { showConsent = false }
             )
         }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView(reason: .deepCheckLimit)
+        }
     }
 
     private func run() {
+        guard canRun else { showPaywall = true; return }
         loading = true
         errorText = nil
         Task {
             defer { loading = false }
             do {
-                result = try await DeepChecker(ai: ai).run(input)
+                let output = try await DeepChecker(ai: ai).run(input)
+                result = output
+                quota.recordRun()
             } catch is CancellationError {
                 // view went away
             } catch {

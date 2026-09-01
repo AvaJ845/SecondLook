@@ -36,8 +36,10 @@ schemes:
         SecondLookTests: [test]
     run:
       config: Debug
+      storeKitConfiguration: SecondLook.storekit
     test:
       gatherCoverageData: true
+      storeKitConfiguration: SecondLook.storekit
       targets:
         - SecondLookTests
 targets:
@@ -48,6 +50,8 @@ targets:
       - path: SecondLook
       - path: Config
         buildPhase: resources
+      - path: SecondLook.storekit
+        buildPhase: none
     settings:
       base:
         INFOPLIST_FILE: SecondLook/Resources/Info.plist
@@ -85,6 +89,8 @@ targets:
     platform: iOS
     sources:
       - path: SecondLookTests
+      - path: SecondLook.storekit
+        buildPhase: resources
     dependencies:
       - target: SecondLook
     settings:

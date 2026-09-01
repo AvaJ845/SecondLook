@@ -6,6 +6,24 @@ import SwiftUI
 enum Palette {
     static let accent = Color(red: 0.227, green: 0.431, blue: 0.647)
 
+    // MARK: - Brand palette (onboarding + Plus surfaces)
+    // Hex values from the SecondLook brand spec. Used for the welcome flow and
+    // the subscription screens; the everyday product keeps `accent` + the
+    // severity colors above.
+    static let brandNavy = Color(red: 0x17 / 255, green: 0x20 / 255, blue: 0x33 / 255) // #172033
+    static let brandTeal = Color(red: 0x39 / 255, green: 0xB7 / 255, blue: 0xA5 / 255) // #39B7A5
+    static let brandMint = Color(red: 0xDD / 255, green: 0xF5 / 255, blue: 0xEF / 255) // #DDF5EF
+    static let brandCoral = Color(red: 0xF2 / 255, green: 0x8B / 255, blue: 0x7A / 255) // #F28B7A
+    static let brandCanvas = Color(red: 0xF7 / 255, green: 0xF8 / 255, blue: 0xFA / 255) // #F7F8FA
+    static let brandSecondaryText = Color(red: 0x74 / 255, green: 0x7B / 255, blue: 0x87 / 255) // #747B87
+
+    /// The Navy → Teal gradient the onboarding hand is filled with.
+    static let brandHandGradient = LinearGradient(
+        colors: [brandNavy, brandTeal],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
     static func color(for severity: Severity) -> Color {
         switch severity {
         case .info: return Color.secondary

@@ -6,8 +6,8 @@ struct PrivacyView: View {
             VStack(alignment: .leading, spacing: 16) {
                 para("SecondLook is built so that the thing it warns you about — handing sensitive information to someone you can't verify — never happens with SecondLook itself.")
 
-                heading("The message never leaves your device")
-                para("Text you paste and screenshots you import are processed entirely on your iPhone. The app makes no network requests. There is no account, no sign-in, and no analytics.")
+                heading("Your normal check stays on your device")
+                para("SecondLook analyzes messages and screenshots locally by default. Text you paste and screenshots you import are processed entirely on your iPhone. There is no account, no sign-in, and no analytics. Nothing is uploaded unless you explicitly choose Deep AI Check.")
 
                 heading("Screenshots aren't kept")
                 para("An imported screenshot is read with Apple's on-device Vision text recognition. The extracted text goes into the editor; the image is not stored.")
@@ -25,7 +25,7 @@ struct PrivacyView: View {
                 para("The report has one optional feature that works differently: \u{201C}Deep AI check\u{201D} sends the screenshot and the message text to SecondLook's AI backend so a vision model can read them directly. It runs only when you tap it and have accepted a one-time explanation, and you can turn it off any time in About \u{2192} AI. The backend briefly caches the result and does not store the image or text or use them to identify you. Everything else in SecondLook stays on your device.")
 
                 heading("You can wipe it")
-                para("Clearing your saved checks in the Saved tab removes everything SecondLook has stored.")
+                para("Clearing your saved checks in the History tab removes everything SecondLook has stored.")
             }
             .padding(20)
         }

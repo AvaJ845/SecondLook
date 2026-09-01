@@ -1,16 +1,29 @@
 import SwiftUI
 
 struct RootView: View {
+    @AppStorage(OnboardingState.key) private var onboardingCompleted = false
+    @State private var showOnboarding = false
+
     var body: some View {
         TabView {
             AnalyzeView()
                 .tabItem { Label("Check", systemImage: "text.viewfinder") }
 
             HistoryView()
-                .tabItem { Label("Saved", systemImage: "clock.arrow.circlepath") }
+                .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
 
             AboutView()
                 .tabItem { Label("About", systemImage: "info.circle") }
+        }
+        .fullScreenCover(isPresented: $showOnboarding) {
+            OnboardingView { _ in
+                OnboardingState.markCompleted()
+                showOnboarding = false
+            }
+            .interactiveDismissDisabled()
+        }
+        .onAppear {
+            if !onboardingCompleted { showOnboarding = true }
         }
     }
 }
@@ -20,5 +33,8 @@ struct RootView: View {
         .environment(HistoryStore(defaults: UserDefaults(suiteName: "preview")!))
         .environment(AIClient())
         .environment(LLMLog())
+        .environment(Entitlements())
+        .environment(SubscriptionManager(entitlements: Entitlements()))
+        .environment(DeepCheckQuota())
         .tint(Palette.accent)
 }

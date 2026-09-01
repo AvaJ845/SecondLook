@@ -2,6 +2,19 @@ import SwiftUI
 
 struct HistoryView: View {
     @Environment(HistoryStore.self) private var history
+    @Environment(Entitlements.self) private var entitlements
+    @State private var showPaywall = false
+
+    /// Free keeps a recent window; Plus keeps everything. Saving is never blocked
+    /// — the whole ledger stays on device — this only limits what the list shows.
+    private var visibleChecks: [StoredCheck] {
+        guard let limit = entitlements.plan.savedHistoryLimit else { return history.checks }
+        return Array(history.checks.prefix(limit))
+    }
+
+    private var hiddenCount: Int {
+        max(0, history.checks.count - visibleChecks.count)
+    }
 
     var body: some View {
         NavigationStack {
@@ -14,18 +27,34 @@ struct HistoryView: View {
                     }
                 } else {
                     List {
-                        ForEach(history.checks) { check in
-                            NavigationLink(value: check) {
-                                row(check)
+                        Section {
+                            ForEach(visibleChecks) { check in
+                                NavigationLink(value: check) { row(check) }
+                            }
+                            .onDelete { indexSet in
+                                indexSet.map { visibleChecks[$0] }.forEach(history.delete)
                             }
                         }
-                        .onDelete { indexSet in
-                            indexSet.map { history.checks[$0] }.forEach(history.delete)
+
+                        if hiddenCount > 0 {
+                            Section {
+                                Button {
+                                    showPaywall = true
+                                } label: {
+                                    HStack {
+                                        Label("\(hiddenCount) more in your history", systemImage: "lock")
+                                        Spacer()
+                                        Text("Plus").font(.caption.weight(.bold)).foregroundStyle(Palette.brandTeal)
+                                    }
+                                }
+                            } footer: {
+                                Text("SecondLook Plus keeps your full saved history. Your recent checks are always here.")
+                            }
                         }
                     }
                 }
             }
-            .navigationTitle("Saved checks")
+            .navigationTitle("History")
             .navigationDestination(for: StoredCheck.self) { check in
                 ReportView(report: check.reconstructedReport())
             }
@@ -39,6 +68,9 @@ struct HistoryView: View {
                         }
                     }
                 }
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(reason: .general)
             }
         }
     }
