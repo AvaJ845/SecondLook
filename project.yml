@@ -8,7 +8,7 @@ options:
 settings:
   base:
     ALWAYS_SEARCH_USER_PATHS: NO
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.0"
     CODE_SIGN_STYLE: Automatic
@@ -50,6 +50,8 @@ targets:
       - path: SecondLook
       - path: Config
         buildPhase: resources
+        excludes:
+          - "AIConfig.example.plist"
       - path: SecondLook.storekit
         buildPhase: none
     settings:

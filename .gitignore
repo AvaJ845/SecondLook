@@ -23,3 +23,7 @@ backend/.wrangler/
 ## Swift Package Manager
 .build/
 .swiftpm/
+
+## Distribution
+ExportOptions.plist
+build/

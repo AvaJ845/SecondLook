@@ -1,18 +1,62 @@
 # SecondLook — launch checklist
 
 Everything left is **configuration or an external account action**, not code.
-Ordered so nothing blocks on something later in the list.
+Ordered so nothing blocks on something later in the list. The unsigned archive
+builds clean (`ARCHIVE SUCCEEDED` with `CODE_SIGNING_ALLOWED=NO`) — only signing
++ the App Store Connect records remain.
 
-## 1. Signing & build
+Version is `1.0` (build `1`). `ITSAppUsesNonExemptEncryption` is declared `false`
+(HTTPS/TLS only) so no export-compliance prompt per upload. Privacy manifests
+ship in both the app and the share extension.
 
-- [ ] Set `DEVELOPMENT_TEAM` in `project.yml` (currently `""`) to the Apple
-      Developer team id, then `xcodegen generate`.
-- [ ] Confirm `Config/AIConfig.plist` exists on the build machine (gitignored).
-      It points the app at `secondlook-ai.divine-mountain-8173.workers.dev` with
-      the bootstrap token. Without it the app runs fully offline (still valid,
-      just no AI phrasing / Deep AI Check).
-- [ ] App icon: `SecondLook/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`
-      is in place. Re-check legibility at 60 px before submit.
+## 1. Get to TestFlight
+
+Needs: paid Apple Developer membership, Xcode signed in to that Apple ID.
+
+```sh
+cd ~/Documents/SecondLook
+
+# 1. Register the app in App Store Connect first (see §4) so the bundle id
+#    com.avaresearch.secondlook exists.
+
+# 2. Confirm the AI backend config is present (gitignored, must be local):
+ls Config/AIConfig.plist    # BaseURL + bootstrap token — without it the app
+                            # runs fully offline (valid, just no AI phrasing).
+
+# 3. Archive (TEAMID = your 10-char Apple Developer Team ID):
+xcodegen generate
+xcodebuild -project SecondLook.xcodeproj -scheme SecondLook \
+  -destination 'generic/platform=iOS' -archivePath build/SecondLook.xcarchive \
+  archive \
+  -allowProvisioningUpdates \
+  CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=TEAMID
+
+# 4. Export + upload:
+xcodebuild -exportArchive -archivePath build/SecondLook.xcarchive \
+  -exportPath build/export -exportOptionsPlist ExportOptions.plist \
+  -allowProvisioningUpdates
+xcrun altool --upload-app -f build/export/SecondLook.ipa -t ios \
+  --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>       # App Store Connect API key
+```
+
+`ExportOptions.plist` (create once, gitignore it):
+```xml
+<plist version="1.0"><dict>
+  <key>method</key><string>app-store-connect</string>
+  <key>teamID</key><string>TEAMID</string>
+  <key>uploadSymbols</key><true/>
+  <key>manageAppVersionAndBuildNumber</key><true/>
+</dict></plist>
+```
+
+Or just: Xcode → **Product → Archive** → **Distribute App → App Store Connect →
+Upload**. Same result, handles signing interactively.
+
+- [ ] After upload: App Store Connect → TestFlight → the build finishes
+      processing (~10–30 min) → add **internal testers** (no review needed).
+- [ ] For **external** testers: fill "What to Test" + the beta description, then
+      submit for **Beta App Review** (usually < 24 h, lighter than full review).
+- [ ] App icon legibility: re-check `AppIcon-1024.png` at 60 px before submit.
 
 ## 2. Backend — turn on device attestation
 
