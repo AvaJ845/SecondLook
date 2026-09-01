@@ -6,14 +6,27 @@ preview_urls = false
 # Separate worker from Pitchwire's (pitchwire-ai) — nothing shared, no impact on it.
 #
 # Secrets (never in this file — set with `wrangler secret put`):
-#   NVIDIA_API_KEY           build.nvidia.com key (nvapi-…). REQUIRED — the chains lead with
-#                            NVIDIA NIM (kimi-k3, GLM-5.3-Flash).
+#   NVIDIA_API_KEY           build.nvidia.com key (nvapi-…). REQUIRED — chains lead with NVIDIA NIM.
 #   OPENROUTER_API_KEY       openrouter.ai key (sk-or-v1-…). REQUIRED — :free fallback models.
-#   SECONDLOOK_CLIENT_TOKEN  long random string the app sends as `Authorization: Bearer <...>`
-#                            (rotatable scoped token; NOT a provider key) — already set
+#   SECONDLOOK_CLIENT_TOKEN  the bootstrap token the app ships with — used ONLY to call
+#                            /v1/register and as a rate-limited fallback. Rotatable.
+#   INSTALL_TOKEN_SECRET     REQUIRED — HMAC secret the worker signs 24h install tokens with.
+#                            A long random string; rotating it invalidates all live install tokens.
+#   DEVICECHECK_KEY          OPTIONAL — Apple DeviceCheck private key (.p8 PEM contents).
+#   DEVICECHECK_KEY_ID       OPTIONAL — the .p8 key id (10 chars).
+#   APPLE_TEAM_ID            OPTIONAL — Apple Developer team id (10 chars).
+#     When all three DEVICECHECK_* / APPLE_TEAM_ID are set, /v1/register verifies the
+#     device with Apple and rejects non-genuine devices. Until then, registration is
+#     accepted on the bootstrap token alone (see the log line).
 
-[vars]
-RATE_LIMIT_PER_MIN = "20"
+[durable_objects]
+bindings = [
+  { name = "RATE_LIMITER", class_name = "RateLimiter" },
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]
 
 [observability]
 enabled = true

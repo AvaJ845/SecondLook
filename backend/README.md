@@ -19,22 +19,56 @@ app ──POST /v1/generate──▶ Worker ──▶ OpenRouter :free  (GLM-5.2
 | `replyCoach` | quality | a short, polite reply the job seeker can send |
 | `verifyEmployer` | fast | a CHECKS / SEARCHES checklist to verify the employer independently |
 
-## What crosses the wire
+Plus a fourth, opt-in task — `deepCheck` — which sends the sanitized message
+text and the screenshot to a vision model. SSNs and card/bank numbers are
+stripped by the app first (`SecondLook/Kit/Sanitizer.swift`).
 
-Only the app's own rule metadata: **which SecondLook signals fired** and the
-**hiring stage**. The user's message text, screenshots, email addresses, names,
-and domains are stripped by the app before the request is built
-(`SecondLook/Kit/AI/AIAdvisor.swift`). The system prompts additionally forbid the
-model from naming or accusing any real company or person.
+## Abuse resistance (P0 #2)
+
+```
+app ─GET  /v1/register/challenge────▶  { challenge }
+app ─POST /v1/register──────────────▶  { token, expiresAt }
+     Bearer <BOOTSTRAP>
+     { installId, deviceToken? }        deviceToken = Apple DeviceCheck output
+                                        · verified with Apple when DEVICECHECK_*
+                                          + APPLE_TEAM_ID secrets are set
+                                        · until then, accepted on the bootstrap
+                                          token alone (see the log line)
+app ─POST /v1/generate──────────────▶  Bearer <install token>  (or bootstrap)
+                                        every call → per-identity Durable Object
+                                        rate limiter (atomic, global)
+```
+
+- The **bootstrap token** (`SECONDLOOK_CLIENT_TOKEN`, shipped in the app)
+  authorizes only `/v1/register` and works on `/v1/generate` as a
+  *tightly* rate-limited fallback.
+- The **install token** is a 24h HMAC (`INSTALL_TOKEN_SECRET`) bound to a random
+  per-install id — **no user identity, no account**.
+- **`RateLimiter` Durable Object** — SQLite-backed (free plan), atomic fixed
+  windows. Replaces the old per-PoP `caches.default` counter. Limits: install
+  tokens get `deepCheck` 3/min·25/day, text 15/min·120/day; a bare bootstrap
+  token gets 2/min·8/day and 6/min·40/day.
 
 ## Status
 
 **Deployed:** `https://secondlook-ai.divine-mountain-8173.workers.dev`
-(`GET /health` → `{"ok":true}`). `SECONDLOOK_CLIENT_TOKEN` is set and the app's
-`Config/AIConfig.plist` points at it.
+(`GET /health` → `{"ok":true}`). Secrets set: `NVIDIA_API_KEY`,
+`OPENROUTER_API_KEY`, `SECONDLOOK_CLIENT_TOKEN`, `INSTALL_TOKEN_SECRET`.
+Provider chains verified serving real responses.
 
-**Pending:** the two provider keys. Until they're added, `/v1/generate` returns
-`502 all providers failed` and the app falls back to on-device text.
+**Pending — DeviceCheck enforcement:** create an Apple DeviceCheck key (Apple
+Developer → Certificates, Identifiers & Profiles → Keys → enable DeviceCheck),
+then:
+
+```sh
+cd backend
+npx wrangler secret put DEVICECHECK_KEY      # the full .p8 file contents (PEM)
+npx wrangler secret put DEVICECHECK_KEY_ID   # the 10-char key id
+npx wrangler secret put APPLE_TEAM_ID        # your 10-char team id
+```
+
+Until then, `/v1/register` mints tokens on the bootstrap token alone — the
+Durable Object rate limiter is still fully enforced.
 
 ```sh
 cd backend

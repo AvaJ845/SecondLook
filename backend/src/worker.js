@@ -5,8 +5,25 @@
  * backend logic. The app talks ONLY to this Worker; provider keys live in Worker
  * secrets, never in the app.
  *
+ * ── Abuse resistance (P0 #2) ──────────────────────────────────────────────────
+ *   1. GET  /v1/register/challenge          -> { challenge }
+ *   2. POST /v1/register                    Authorization: Bearer <BOOTSTRAP>
+ *        { installId, deviceToken? }        -> { token, expiresAt }
+ *        - deviceToken is Apple DeviceCheck output; verified with Apple when the
+ *          DEVICECHECK_* secrets are configured, otherwise accepted on the
+ *          bootstrap token alone (enforcement is a secret away, no app update).
+ *        - `token` is a 24h HMAC (INSTALL_TOKEN_SECRET) bound to installId.
+ *   3. POST /v1/generate                    Authorization: Bearer <install token
+ *                                           OR bootstrap>
+ *        - Every call passes through a per-identity Durable Object rate limiter
+ *          (atomic, global — replaces the old per-PoP cache counter). Requests
+ *          on a bare bootstrap token get a much tighter limit.
+ *
+ * No user account, ever. The install token carries no identity — just "this
+ * install passed attestation." The standard on-device check never touches any
+ * of this.
+ *
  *   POST /v1/generate
- *   Authorization: Bearer <SECONDLOOK_CLIENT_TOKEN>
  *   { "task", "tier", "input": {..}, "prompt" }
  *   -> 200 { "text", "model", "cached", "usage": { "inputTokens", "outputTokens" } }
  *
@@ -108,21 +125,42 @@ const SYSTEM = {
     "Ground every concern in something actually present in the message or image." + GUARDRAILS,
 };
 
+// Per-identity rate limits. deepCheck is the expensive multimodal path.
+const LIMITS = {
+  install: {
+    deepCheck: { minLimit: 3, dayLimit: 25 },
+    text: { minLimit: 15, dayLimit: 120 },
+  },
+  // A bare bootstrap token is the dev / first-run fallback — it should never
+  // carry real volume.
+  bootstrap: {
+    deepCheck: { minLimit: 2, dayLimit: 8 },
+    text: { minLimit: 6, dayLimit: 40 },
+  },
+};
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/health") return json({ ok: true, worker: "secondlook-ai" });
 
-    const auth = request.headers.get("Authorization") || "";
-    if (auth !== `Bearer ${env.SECONDLOOK_CLIENT_TOKEN}`) {
-      return json({ error: "unauthorized" }, 401);
+    const bearer = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const ip = request.headers.get("CF-Connecting-IP") || "anon";
+
+    // ── Registration: bootstrap-authed, mints an install token ────────────────
+    if (url.pathname === "/v1/register/challenge") {
+      return json({ challenge: crypto.randomUUID(), ts: Date.now() });
+    }
+    if (url.pathname === "/v1/register") {
+      if (bearer !== env.SECONDLOOK_CLIENT_TOKEN) return json({ error: "unauthorized" }, 401);
+      if (request.method !== "POST") return json({ error: "POST only" }, 405);
+      return registerInstall(request, env, ip);
     }
 
-    const ip = request.headers.get("CF-Connecting-IP") || "anon";
-    if (await rateLimited(ip, env)) return json({ error: "rate limited" }, 429);
+    // ── Everything past here needs a token (install or bootstrap) ─────────────
+    const identity = await resolveIdentity(bearer, env, ip);
+    if (!identity) return json({ error: "unauthorized" }, 401);
 
-    // Debug helper (GET or POST): the models this account can use, so the chains
-    // above can be kept current. ?provider=nvidia lists NVIDIA NIM's catalog.
     if (url.pathname === "/v1/models") {
       return url.searchParams.get("provider") === "nvidia"
         ? listNvidiaModels(env)
@@ -136,6 +174,19 @@ export default {
     try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
     const { task, tier, input = {}, prompt = "" } = body;
     if (!TASK_MODELS[task]) return json({ error: `unknown task ${task}` }, 400);
+
+    // ── Atomic per-identity rate limit (Durable Object) ──────────────────────
+    const bucket = task === "deepCheck" ? "deepCheck" : "text";
+    const limits = LIMITS[identity.kind][bucket];
+    const gate = await checkRateLimit(env, identity.key, limits);
+    if (!gate.allowed) {
+      return json(
+        { error: "rate limited", scope: gate.scope, retryAfter: gate.retryAfter },
+        429,
+        0,
+        { "Retry-After": String(gate.retryAfter || 60) }
+      );
+    }
 
     const isVision = task === "deepCheck" && typeof input.image === "string" && input.image.startsWith("data:");
     const only = url.searchParams.get("only");
@@ -318,28 +369,184 @@ function buildUserContent(prompt, input) {
   return facts ? `${prompt}\n\n${facts}` : prompt;
 }
 
-async function rateLimited(ip, env) {
-  const limit = Number(env.RATE_LIMIT_PER_MIN || 20);
-  const cache = caches.default;
-  const key = new URL(`https://rl.secondlook/${ip}/${Math.floor(Date.now() / 60000)}`);
-  const cur = await cache.match(key);
-  const count = cur ? Number(await cur.text()) : 0;
-  if (count >= limit) return true;
-  await cache.put(key, new Response(String(count + 1), { headers: { "Cache-Control": "max-age=70" } }));
-  return false;
+// ─── identity: install token OR bootstrap ─────────────────────────────────────
+
+async function resolveIdentity(bearer, env, ip) {
+  if (!bearer) return null;
+  const claims = await verifyInstallToken(bearer, env);
+  if (claims) return { kind: "install", key: `inst:${claims.sub}` };
+  if (bearer === env.SECONDLOOK_CLIENT_TOKEN) return { kind: "bootstrap", key: `boot:${ip}` };
+  return null;
 }
+
+async function registerInstall(request, env, ip) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
+  const installId = String(body.installId || "").slice(0, 64);
+  if (!/^[A-Za-z0-9._\-]{8,64}$/.test(installId)) return json({ error: "bad installId" }, 400);
+
+  // DeviceCheck verification — enforced only when the key is configured.
+  let attested = false;
+  if (env.DEVICECHECK_KEY_ID && env.DEVICECHECK_KEY && env.APPLE_TEAM_ID) {
+    if (!body.deviceToken) return json({ error: "deviceToken required" }, 400);
+    attested = await verifyDeviceCheck(String(body.deviceToken), env).catch((e) => {
+      console.log("devicecheck error:", String(e));
+      return false;
+    });
+    if (!attested) return json({ error: "device attestation failed" }, 403);
+  } else {
+    console.log("register: DeviceCheck not configured — accepting on bootstrap token");
+  }
+
+  const ttlSeconds = 24 * 3600;
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const token = await signInstallToken({ sub: installId, exp, att: attested ? 1 : 0 }, env);
+  return json({ token, expiresAt: exp * 1000 });
+}
+
+// Minimal HS256 JWT (header.payload.sig), enough for a first-party install token.
+async function signInstallToken(claims, env) {
+  const secret = env.INSTALL_TOKEN_SECRET;
+  if (!secret) throw new Error("INSTALL_TOKEN_SECRET not set");
+  const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = b64url(JSON.stringify(claims));
+  const sig = await hmac(`${header}.${payload}`, secret);
+  return `${header}.${payload}.${sig}`;
+}
+
+async function verifyInstallToken(token, env) {
+  const secret = env.INSTALL_TOKEN_SECRET;
+  if (!secret || !token || token.split(".").length !== 3) return null;
+  const [header, payload, sig] = token.split(".");
+  const expected = await hmac(`${header}.${payload}`, secret);
+  if (!timingSafeEqual(sig, expected)) return null;
+  let claims;
+  try { claims = JSON.parse(atobUrl(payload)); } catch { return null; }
+  if (!claims.exp || claims.exp < Math.floor(Date.now() / 1000)) return null;
+  return claims;
+}
+
+async function verifyDeviceCheck(deviceToken, env) {
+  const jwt = await appleDeviceCheckJWT(env);
+  const res = await fetch("https://api.devicecheck.apple.com/v1/validate_device_token", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${jwt}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      device_token: deviceToken,
+      transaction_id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    }),
+  });
+  return res.status === 200; // 200 = a genuine Apple device
+}
+
+async function appleDeviceCheckJWT(env) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64url(JSON.stringify({ alg: "ES256", kid: env.DEVICECHECK_KEY_ID }));
+  const payload = b64url(JSON.stringify({ iss: env.APPLE_TEAM_ID, iat: now, exp: now + 600 }));
+  const key = await importES256(env.DEVICECHECK_KEY);
+  const sigBuf = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" }, key,
+    new TextEncoder().encode(`${header}.${payload}`)
+  );
+  return `${header}.${payload}.${b64urlBytes(new Uint8Array(sigBuf))}`;
+}
+
+async function importES256(pem) {
+  const der = Uint8Array.from(
+    atob(pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "")),
+    (c) => c.charCodeAt(0)
+  );
+  return crypto.subtle.importKey("pkcs8", der, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+}
+
+// ─── Durable Object rate limiter (atomic, global) ─────────────────────────────
+
+async function checkRateLimit(env, key, limits) {
+  try {
+    const id = env.RATE_LIMITER.idFromName(key);
+    const stub = env.RATE_LIMITER.get(id);
+    const res = await stub.fetch("https://rl/check", {
+      method: "POST",
+      body: JSON.stringify(limits),
+    });
+    return await res.json();
+  } catch (e) {
+    console.log("rate limiter unavailable:", String(e));
+    return { allowed: true }; // fail open — never block a paying request on infra
+  }
+}
+
+export class RateLimiter {
+  constructor(ctx) { this.ctx = ctx; }
+
+  async fetch(request) {
+    const { minLimit, dayLimit } = await request.json();
+    const now = Date.now();
+    const nowSec = Math.floor(now / 1000);
+    const minKey = `m:${Math.floor(now / 60000)}`;
+    const dayKey = `d:${Math.floor(now / 86400000)}`;
+
+    const stored = await this.ctx.storage.get([minKey, dayKey]);
+    const m = stored.get(minKey) || 0;
+    const d = stored.get(dayKey) || 0;
+
+    if (m >= minLimit) return Response.json({ allowed: false, scope: "minute", retryAfter: 60 - (nowSec % 60) });
+    if (d >= dayLimit) return Response.json({ allowed: false, scope: "day", retryAfter: 86400 - (nowSec % 86400) });
+
+    await this.ctx.storage.put({ [minKey]: m + 1, [dayKey]: d + 1 });
+    this.ctx.storage.setAlarm(now + 3600_000);
+    return Response.json({ allowed: true, minRemaining: minLimit - m - 1, dayRemaining: dayLimit - d - 1 });
+  }
+
+  async alarm() {
+    const nowMin = Math.floor(Date.now() / 60000);
+    const nowDay = Math.floor(Date.now() / 86400000);
+    const all = await this.ctx.storage.list();
+    const stale = [];
+    for (const k of all.keys()) {
+      const [t, n] = k.split(":");
+      if (t === "m" && Number(n) < nowMin - 5) stale.push(k);
+      if (t === "d" && Number(n) < nowDay - 2) stale.push(k);
+    }
+    if (stale.length) await this.ctx.storage.delete(stale);
+  }
+}
+
+// ─── small crypto / encoding helpers ─────────────────────────────────────────
 
 async function hash(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function json(obj, status = 200, maxAge = 0) {
+async function hmac(data, secret) {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return b64urlBytes(new Uint8Array(sig));
+}
+
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+const b64url = (s) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const b64urlBytes = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const atobUrl = (s) => decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/"))));
+
+function json(obj, status = 200, maxAge = 0, extraHeaders = {}) {
   return new Response(JSON.stringify(obj), {
     status,
     headers: {
       "Content-Type": "application/json",
       ...(maxAge ? { "Cache-Control": `max-age=${maxAge}` } : {}),
+      ...extraHeaders,
     },
   });
 }

@@ -2,9 +2,10 @@ import Foundation
 
 /// Everything the app needs to reach AI — and nothing it must not hold.
 ///
-/// The app NEVER carries a provider API key. `clientToken` is a rotatable,
-/// scoped token for SecondLook's own backend; the backend holds the real
-/// provider credentials and does the routing.
+/// The app NEVER carries a provider API key. `clientToken` is the rotatable
+/// **bootstrap** token: it authorizes `/v1/register` (which mints a short-lived,
+/// per-install token via `CredentialProvider`) and acts as a tightly
+/// rate-limited fallback. The backend holds the real provider credentials.
 ///
 /// `baseURL == nil` means "no backend" → the app runs on `OfflineGateway` and
 /// every AI feature falls back to a deterministic, on-device result. That is the

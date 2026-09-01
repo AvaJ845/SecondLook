@@ -143,12 +143,26 @@ Verdicts:
   19-case adversarial corpus + over-redaction guard + end-to-end engine test in
   `SanitizerTests.swift`. Screenshot pixels still can't be scrubbed — consent
   copy says so.
-- **Backend abuse → App Attest / DeviceCheck per-install credential + a Durable
-  Object atomic rate limiter**; the plist token demoted to a bootstrap secret
-  for `/v1/register`. **RESHAPE** — scoped first cut (DO limiter + bootstrapped
-  short-lived tokens), lazy background attestation that blocks only the *first*
-  deep check. Adding user accounts to rate-limit is a **CUT** (kills "no
-  account").
+- **Backend abuse** — ✅ **scoped cut DONE.**
+  - `RateLimiter` **Durable Object** (SQLite, free plan) — atomic global
+    per-identity fixed-window limiter, replaces the racy per-PoP
+    `caches.default` counter. Verified: bootstrap text token 429s on the 7th
+    request/min exactly as configured.
+  - `/v1/register` mints a **24h HMAC install token** bound to a random
+    per-install id (keychain, survives reinstall) — **no account, no identity**.
+    `CredentialProvider` actor registers lazily on the first backend call,
+    caches + refreshes, serializes concurrent callers, falls back to the
+    bootstrap token if the backend is unreachable. `HTTPGateway` retries once
+    on 401.
+  - **DeviceCheck** attestation is wired end-to-end (`DeviceCheckAttestor`,
+    `/v1/register` Apple verification) but **enforcement is gated on the
+    `DEVICECHECK_*` + `APPLE_TEAM_ID` secrets** — add the key and it turns on
+    with no app update. Sim has no DeviceCheck → falls back cleanly.
+  - `INSTALL_TOKEN_SECRET` set. `SECONDLOOK_CLIENT_TOKEN` is now the bootstrap.
+  - **Deferred:** full App Attest per-key crypto; a server-side monthly quota
+    mirror. Adding user accounts stays **CUT**.
+  - 6 `CredentialProviderTests` (cache, concurrency, expiry, 401 refresh,
+    bootstrap fallback). E2E register→generate confirmed in the sim.
 - **Growth loop → on-device `ImageRenderer` ShareCard** (overall read + finding
   titles + severities + disclaimer + URL; no quotes, no domains, no identity) +
   a "Check with SecondLook" App Intent. **SHIP** the card; Reshape the Intent
