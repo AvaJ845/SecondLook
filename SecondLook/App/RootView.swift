@@ -18,5 +18,7 @@ struct RootView: View {
 #Preview {
     RootView()
         .environment(HistoryStore(defaults: UserDefaults(suiteName: "preview")!))
+        .environment(AIClient())
+        .environment(LLMLog())
         .tint(Palette.accent)
 }

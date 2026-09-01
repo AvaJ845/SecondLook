@@ -160,5 +160,6 @@ struct AnalyzeView: View {
 #Preview {
     AnalyzeView()
         .environment(HistoryStore(defaults: UserDefaults(suiteName: "preview")!))
+        .environment(AIClient())
         .tint(Palette.accent)
 }

@@ -17,6 +17,8 @@ struct ReportView: View {
 
                 stageFraming
 
+                AIInsightsView(report: report)
+
                 if !report.activeFindings.isEmpty {
                     section("What we found") {
                         ForEach(report.activeFindings) { FindingCard(finding: $0) }
@@ -103,6 +105,7 @@ struct ReportView: View {
     NavigationStack {
         ReportView(report: RuleEngine.analyze(text: SampleMessages.all[0].text, stage: .firstContact))
             .environment(HistoryStore(defaults: UserDefaults(suiteName: "preview")!))
+            .environment(AIClient())
     }
     .tint(Palette.accent)
 }

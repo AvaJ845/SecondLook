@@ -49,6 +49,49 @@ for this hiring stage → optional domain check against real career sites.
 - **Content:** Rule catalog is deliberately small and high-signal. Expand from
   real FTC / FBI IC3 job-scam typologies, not guesses.
 
+## Slice 1 — Fellows continue (AI baked in)
+
+North Star unchanged. Slice 1 adds a plain-language layer on top of the
+deterministic engine, using the **Pitchwire AI backend pattern** — a separate
+Cloudflare Worker (`secondlook-ai`), its own secrets and task set, zero shared
+surface with Pitchwire.
+
+### AI architecture (ported from Pitchwire, `SecondLook/Kit/AI/`)
+- `AIGateway` protocol boundary · `AIClient` single seam · `AIConfiguration`
+  (baseURL + scoped `clientToken`, **never a provider key**) · `HTTPGateway`
+  (talks only to our Worker) · `OfflineGateway` (default) · `MockAIGateway`
+  (DEBUG) · `LLMLog` + telemetry + `Redaction` for secrets.
+- Fixed `AITask` set: `plainSummary`, `replyCoach`, `verifyEmployer`. No
+  free-form prompts from call sites.
+- **Every task has a deterministic on-device fallback** (`AIAdvisor`). With no
+  `Config/AIConfig.plist`, the app is 100% offline and makes no network calls —
+  the privacy manifest stays literally true for the shipping default.
+
+### The privacy hardening (SecondLook-specific)
+What can reach the backend: **only the names of the SecondLook rules that fired
+plus the hiring stage** — all app-authored strings. The user's message text,
+screenshots, email addresses, names, and domains are stripped before the request
+is built. System prompts additionally forbid the model from naming or accusing
+any real company or person. This is the resolution of the "no data leaves the
+device" tension — Mei signs off because no user content is ever in the payload.
+
+### Shipped in Slice 1
+- [x] Full AI layer + `secondlook-ai` Worker (`backend/`)
+- [x] "In plain terms" card in the report — summary + "what you could say back"
+- [x] Honest provenance caption (generated vs. on-device) + AI status in About
+- [x] DEBUG AI call-log viewer
+- [x] Privacy manifest + Privacy screen updated for the optional backend
+- [x] 7 AI-layer tests (config mapping, secret redaction, offline fallback,
+      mock-gateway generation)
+
+### Slice 2 candidates (not built)
+- `verifyEmployer` wired into the UI (checklist card) — task + prompts exist,
+  deterministic builder + view still to do
+- Re-check / follow-up: save a thread, re-run as new messages arrive
+- First-run onboarding; iPad layout; localization (OCR + rules + prompts)
+- Paid fallback + real rate-limit store on the Worker before public launch
+- Deploy the Worker, set `AIConfig.plist`, measure summary quality vs. templates
+
 ## Open questions
 
 - Ship the domain reference list in-app (current) vs. a signed, updatable bundle?

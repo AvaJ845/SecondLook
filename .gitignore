@@ -12,6 +12,14 @@ SecondLook.xcodeproj/
 ## macOS
 .DS_Store
 
+## AI backend config (secrets) — copy Config/AIConfig.example.plist to this
+Config/AIConfig.plist
+
+## Cloudflare Worker
+backend/node_modules/
+backend/.dev.vars
+backend/.wrangler/
+
 ## Swift Package Manager
 .build/
 .swiftpm/

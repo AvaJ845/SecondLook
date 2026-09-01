@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copy this file to AIConfig.plist (gitignored) and fill it in to point the app
+  at the deployed SecondLook AI backend. If AIConfig.plist is absent the app
+  runs fully offline on deterministic, on-device text and makes no network calls.
+
+    BaseURL      https://secondlook-ai.<your-subdomain>.workers.dev   (our Worker, not a provider)
+    ClientToken  the SECONDLOOK_CLIENT_TOKEN set with `wrangler secret put`
+                 (a rotatable scoped token — never a provider API key)
+
+  This is a SEPARATE worker from Pitchwire's. Same backend logic, different
+  deployment, different task set. See backend/.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>BaseURL</key>
+    <string></string>
+    <key>ClientToken</key>
+    <string></string>
+</dict>
+</plist>

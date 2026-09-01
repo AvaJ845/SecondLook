@@ -18,6 +18,9 @@ struct PrivacyView: View {
                 heading("Link checks are offline")
                 para("Domains found in a message are compared against a list bundled inside the app. SecondLook does not contact, resolve, or open any link or address from the message.")
 
+                heading("Plain-language insights")
+                para("The \u{201C}In plain terms\u{201D} summary and the suggested reply are built from the signals SecondLook already found. If an AI backend is configured, it is sent only that list of signals plus your hiring stage — never the message text, a screenshot, an email address, a name, or a domain — and it phrases them into a paragraph. With no backend configured (the default), this text is written entirely on your device and the app makes no network calls.")
+
                 heading("You can wipe it")
                 para("Clearing your saved checks in the Saved tab removes everything SecondLook has stored.")
             }

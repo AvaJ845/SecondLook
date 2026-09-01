@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct AboutView: View {
+    @Environment(AIClient.self) private var ai
+    @Environment(LLMLog.self) private var llmLog
+
     var body: some View {
         NavigationStack {
             List {
@@ -20,6 +23,30 @@ struct AboutView: View {
                     bullet("checklist", "A local rule engine checks the text against known job-scam patterns and explains each match.")
                     bullet("calendar.badge.clock", "Findings are weighed against the hiring stage you pick — an SSN request is routine onboarding, alarming at first contact.")
                     bullet("link", "Any links are compared on-device to a list of real careers and applicant-tracking sites. SecondLook never opens them.")
+                }
+
+                Section {
+                    HStack {
+                        Label("Plain-language insights", systemImage: "sparkles")
+                        Spacer()
+                        Text(ai.isConfigured ? "AI backend" : "On-device")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(ai.isConfigured
+                         ? "Summaries and reply suggestions are phrased by SecondLook's AI backend. Only which signals fired and your hiring stage are sent — never the message text or a screenshot."
+                         : "Summaries and reply suggestions are written on your device from the signals SecondLook found. No backend is configured, so the app makes no network calls.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    #if DEBUG
+                    NavigationLink {
+                        DebugLLMLogView()
+                    } label: {
+                        Label("AI call log (debug)", systemImage: "terminal")
+                    }
+                    #endif
+                } header: {
+                    Text("AI")
                 }
 
                 Section("Privacy") {
@@ -58,4 +85,8 @@ struct AboutView: View {
     }
 }
 
-#Preview { AboutView() }
+#Preview {
+    AboutView()
+        .environment(AIClient())
+        .environment(LLMLog())
+}

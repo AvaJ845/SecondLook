@@ -6,7 +6,14 @@
 	     any screenshot you check are processed entirely on-device (Vision +
 	     a local rule engine) and are never uploaded. Saved checks store only
 	     which rules matched, the hiring stage, and a date - never the message
-	     text itself. The app makes no network calls. -->
+	     text itself.
+
+	     The default build ships with no AI backend configured and makes no
+	     network calls. If a backend IS configured (Config/AIConfig.plist), the
+	     only data sent to it is the app's own rule metadata - which signals
+	     fired and the chosen hiring stage - to phrase the plain-language
+	     summary. The message text, screenshots, emails, names, and domains are
+	     never sent. This metadata is not linked to the user's identity. -->
 	<key>NSPrivacyTracking</key>
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>

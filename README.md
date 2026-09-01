@@ -22,6 +22,18 @@ friend who's job-hunting right now.
    list of real careers and applicant-tracking sites, and checked for brand
    lookalikes (`amaz0n-hiring.com`). SecondLook never opens the links.
 
+## Plain-language layer (AI)
+
+The report's "In plain terms" card — a short summary and a suggested reply — is
+built from the deterministic findings. It's phrased by SecondLook's AI backend
+(`backend/`, a Cloudflare Worker, the Pitchwire gateway pattern) when one is
+configured, and written on-device from templates otherwise.
+
+The backend is sent **only which rules fired and the hiring stage** — never your
+message text, a screenshot, an email address, a name, or a domain. With no
+`Config/AIConfig.plist` the app is fully offline and makes no network calls (the
+shipping default). See `SecondLook/Kit/AI/` and `backend/README.md`.
+
 ## Privacy (the whole point)
 
 An anti-scam app that hoards the data it warns you about would be a bad joke.
@@ -56,6 +68,8 @@ open SecondLook.xcodeproj
 | Path | What |
 | --- | --- |
 | `SecondLook/Kit/` | The engine — models, rule catalog, domain checker, OCR. Pure, no I/O. Shared with the share extension. |
+| `SecondLook/Kit/AI/` | AI gateway/client seam (Pitchwire pattern), `AIAdvisor` with on-device fallbacks. |
+| `backend/` | `secondlook-ai` Cloudflare Worker — separate from Pitchwire's. |
 | `SecondLook/Kit/UI/` | Presentational components shared by the app and the share extension. |
 | `SecondLook/Features/` | App screens: Analyze, Report, History, About. |
 | `SecondLook/Store/` | `HistoryStore` — saved checks (no message text). |
