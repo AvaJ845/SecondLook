@@ -28,11 +28,11 @@ struct AboutView: View {
 
                 Section {
                     HStack {
-                        Label("Plain-language insights", systemImage: "sparkles")
+                        Label("AI status", systemImage: "sparkles")
                         Spacer()
-                        Text(ai.isConfigured ? "AI backend" : "On-device")
+                        Text(ai.isConfigured ? "Connected" : "On-device")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(ai.isConfigured ? Palette.color(for: .clear) : .secondary)
                     }
                     Text(ai.isConfigured
                          ? "Summaries and reply suggestions are phrased by SecondLook's AI backend. Only which signals fired and your hiring stage are sent — never the message text or a screenshot."

@@ -64,7 +64,7 @@ struct AIInsightsView: View {
     private var caption: String {
         let generated = summary?.source == .generated || reply?.source == .generated
         return generated
-            ? "Phrased by SecondLook's AI backend from the signals above. Your message text and any screenshot were not sent."
+            ? "Phrased by SecondLook's AI from the signals above. Your message text and any screenshot were not sent."
             : "Written on your device from the signals above."
     }
 }

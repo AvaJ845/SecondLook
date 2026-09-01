@@ -97,7 +97,7 @@ private struct DeepCheckResultView: View {
                 block("How to verify", items: result.verifySteps)
             }
 
-            Text("From \(result.model), reading the screenshot and text. AI-generated — not a verdict.")
+            Text("Read the screenshot and text directly. AI-generated — not a verdict.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
