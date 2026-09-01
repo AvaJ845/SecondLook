@@ -71,7 +71,7 @@ final class ShareCardTests: XCTestCase {
     func testPlainTextHasTaglineAndNoTrailingWhitespaceGarbage() {
         let text = ShareCard(from: report("Pay a $200 fee by gift card.")).plainText()
         XCTAssertTrue(text.contains("SecondLook"))
-        XCTAssertTrue(text.contains(SecondLookLinks.appStore))
+        XCTAssertTrue(text.contains(SecondLookLinks.learnMore))
         XCTAssertTrue(text.contains("on your device"))
     }
 }

@@ -87,7 +87,11 @@ struct AnalyzeView: View {
             }
             #if DEBUG
             .task {
-                if ProcessInfo.processInfo.arguments.contains("-demo-report"), model.report == nil {
+                let args = ProcessInfo.processInfo.arguments
+                if args.contains("-demo-fill"), model.text.isEmpty {
+                    model.useSample(SampleMessages.all[0])
+                }
+                if args.contains("-demo-report"), model.report == nil {
                     model.useSample(SampleMessages.all[0])
                     model.analyze()
                 }

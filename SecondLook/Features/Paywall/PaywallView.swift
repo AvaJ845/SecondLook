@@ -44,8 +44,8 @@ struct PaywallView: View {
 
     enum Plan { case yearly, monthly }
 
-    private let termsURL = URL(string: "https://avaj845.github.io/SecondLook/terms.html")!
-    private let privacyURL = URL(string: "https://avaj845.github.io/SecondLook/privacy.html")!
+    private let termsURL = URL(string: SecondLookLinks.terms)!
+    private let privacyURL = URL(string: SecondLookLinks.privacy)!
 
     var body: some View {
         NavigationStack {

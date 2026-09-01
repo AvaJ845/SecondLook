@@ -72,6 +72,13 @@
   .step p{margin:0;color:var(--muted);font-size:14.5px}
   .step b{color:var(--ink)}
 
+  .shots{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:6px}
+  .shots figure{margin:0}
+  .shots img{width:100%;border-radius:22px;display:block;
+    box-shadow:0 14px 34px rgba(23,32,51,.16);border:1px solid var(--line)}
+  .shots figcaption{color:var(--muted);font-size:13px;text-align:center;margin-top:12px;line-height:1.4}
+  @media (max-width:720px){ .shots{grid-template-columns:1fr;max-width:320px;margin:0 auto} }
+
   footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--muted);font-size:13.5px;text-align:center}
   footer a{color:var(--muted);text-decoration:underline}
   footer .links{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
@@ -138,6 +145,27 @@
       <div class="step"><p><b>Pick your hiring stage</b> — first contact, interviewing, offer, or onboarding — or leave it as "not sure."</p></div>
       <div class="step"><p><b>Read the report.</b> An overall read plus an itemized list of what's unusual, each with a plain-language reason and a next step.</p></div>
       <div class="step"><p><b>Optionally, go deeper.</b> "Deep AI Check" sends the screenshot and text to an AI model for a closer read — only when you tap it, after a one-time explanation.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <h2>A look inside</h2>
+    <p class="lead">Paste the message, get the read, forward the flags — not the message.</p>
+    <div class="shots">
+      <figure>
+        <img src="img/shot-home.jpg" alt="The Check screen with a suspicious recruiter message pasted in — an offer for a Remote Work Coordinator role paying $38/hour for 2–3 hours daily, asking for ID and a deposited check" loading="lazy">
+        <figcaption>Paste a recruiter message or drop in a screenshot.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/shot-report.jpg" alt="The report: a red banner reading Several things don't line up, tallies of 1 major red flag, 3 unusual, 3 worth noticing, a stage note for first contact, and a plain-language summary" loading="lazy">
+        <figcaption>An overall read, then every flag with a reason — not a score.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/shot-share.jpg" alt="The share sheet showing exactly what gets sent: a card with the overall read and the finding titles, no message text, no names, footer reading your message stayed on your device" loading="lazy">
+        <figcaption>Share the check with a friend — the card carries the flags, never the message.</figcaption>
+      </figure>
     </div>
   </div>
 </section>

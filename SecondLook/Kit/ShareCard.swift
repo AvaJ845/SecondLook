@@ -62,7 +62,16 @@ struct ShareCard: Equatable {
 }
 
 enum SecondLookLinks {
-    /// Set to the real App Store URL once the app is live.
-    static let appStore = "https://apps.apple.com/app/secondlook"
-    static let shareTagline = "Get it: \(appStore)"
+    /// The App Store product URL. `nil` until the listing exists — the shared
+    /// text falls back to the marketing site, which itself links onward.
+    static let appStore: String? = nil
+
+    static let site = "https://avaj845.github.io/SecondLook/"
+    static let privacy = "https://avaj845.github.io/SecondLook/privacy.html"
+    static let terms = "https://avaj845.github.io/SecondLook/terms.html"
+
+    /// Where a shared result points a friend. App Store when it's live, the
+    /// marketing site until then.
+    static var learnMore: String { appStore ?? site }
+    static var shareTagline: String { "Learn more: \(learnMore)" }
 }
