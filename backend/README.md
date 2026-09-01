@@ -27,15 +27,35 @@ and domains are stripped by the app before the request is built
 (`SecondLook/Kit/AI/AIAdvisor.swift`). The system prompts additionally forbid the
 model from naming or accusing any real company or person.
 
-## Deploy
+## Status
+
+**Deployed:** `https://secondlook-ai.divine-mountain-8173.workers.dev`
+(`GET /health` → `{"ok":true}`). `SECONDLOOK_CLIENT_TOKEN` is set and the app's
+`Config/AIConfig.plist` points at it.
+
+**Pending:** the provider secrets. Until they're added, `/v1/generate` returns
+`502 all providers failed` and the app falls back to on-device text.
 
 ```sh
 cd backend
-npm install
-npx wrangler secret put OPENROUTER_API_KEY
-npx wrangler secret put NVIDIA_API_KEY
-npx wrangler secret put SECONDLOOK_CLIENT_TOKEN   # a long random string you choose
-npx wrangler deploy
+npx wrangler secret put OPENROUTER_API_KEY   # sk-or-v1-…  (vision models + GLM)
+npx wrangler secret put NVIDIA_API_KEY       # nvapi-…     (gpt-oss fallback for text tasks)
+# already set: SECONDLOOK_CLIENT_TOKEN
+```
+
+Verify:
+
+```sh
+TOKEN=<the SECONDLOOK_CLIENT_TOKEN>
+curl -s https://secondlook-ai.divine-mountain-8173.workers.dev/v1/generate \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"task":"plainSummary","tier":"fast","input":{"hiring_stage":"First contact","signals_that_fired":"Major red flag: Asks you to pay to get the job"},"prompt":"summarize"}'
+```
+
+## Redeploy
+
+```sh
+cd backend && npx wrangler deploy
 ```
 
 Then point the app at it: copy `Config/AIConfig.example.plist` to

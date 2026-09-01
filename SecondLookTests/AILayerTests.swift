@@ -67,6 +67,68 @@ final class AILayerTests: XCTestCase {
     }
     #endif
 
+    // MARK: DeepCheck parsing
+
+    func testDeepCheckParsesLabelledBlocks() {
+        let raw = """
+        READ: several things do not line up
+        CONCERNS:
+        - Asks for your SSN before any interview
+        - Wants you to deposit a check and wire money back
+        REPLY: Thanks, but I'd like to confirm the role on a video call from a company email first.
+        VERIFY:
+        - Find the job on the company's real careers page
+        - Confirm the recruiter on LinkedIn
+        """
+        let result = DeepChecker.parse(raw, model: "test-model")
+        XCTAssertEqual(result.read, .doesNotLineUp)
+        XCTAssertEqual(result.concerns.count, 2)
+        XCTAssertTrue(result.reply.contains("video call"))
+        XCTAssertEqual(result.verifySteps.count, 2)
+        XCTAssertEqual(result.model, "test-model")
+    }
+
+    func testDeepCheckParsesCleanResult() {
+        let raw = """
+        READ: looks consistent with a real process
+        CONCERNS:
+        - none found
+        REPLY: Sounds good, happy to continue.
+        VERIFY:
+        - Double-check the sender's email domain
+        """
+        let result = DeepChecker.parse(raw, model: "m")
+        XCTAssertEqual(result.read, .consistent)
+        XCTAssertTrue(result.concerns.isEmpty)
+    }
+
+    func testDeepCheckNotConfiguredThrows() async {
+        let checker = DeepChecker(ai: AIClient(configuration: .offline))
+        do {
+            _ = try await checker.run(DeepCheckInput(text: "some job message text here", imageData: nil, stage: .firstContact))
+            XCTFail("expected notConfigured")
+        } catch let error as DeepCheckError {
+            guard case .notConfigured = error else { return XCTFail("wrong error \(error)") }
+        } catch {
+            XCTFail("wrong error type \(error)")
+        }
+    }
+
+    #if DEBUG
+    func testDeepCheckWithMockGatewayParses() async throws {
+        let client = AIClient(
+            configuration: AIConfiguration(baseURL: URL(string: "https://mock.local")!, clientToken: "t"),
+            gatewayOverride: MockAIGateway()
+        )
+        let result = try await DeepChecker(ai: client).run(
+            DeepCheckInput(text: "We need your SSN and a photo of your ID today.", imageData: nil, stage: .firstContact)
+        )
+        XCTAssertEqual(result.read, .doesNotLineUp)
+        XCTAssertFalse(result.concerns.isEmpty)
+        XCTAssertFalse(result.reply.isEmpty)
+    }
+    #endif
+
     // MARK: Deterministic summary is grounded
 
     func testDeterministicSummaryReflectsSeverity() {

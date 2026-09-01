@@ -19,7 +19,10 @@ struct PrivacyView: View {
                 para("Domains found in a message are compared against a list bundled inside the app. SecondLook does not contact, resolve, or open any link or address from the message.")
 
                 heading("Plain-language insights")
-                para("The \u{201C}In plain terms\u{201D} summary and the suggested reply are built from the signals SecondLook already found. If an AI backend is configured, it is sent only that list of signals plus your hiring stage — never the message text, a screenshot, an email address, a name, or a domain — and it phrases them into a paragraph. With no backend configured (the default), this text is written entirely on your device and the app makes no network calls.")
+                para("The \u{201C}In plain terms\u{201D} summary and the suggested reply are built from the signals SecondLook already found. If an AI backend is configured, it is sent only that list of signals plus your hiring stage — never the message text, a screenshot, an email address, a name, or a domain — and it phrases them into a paragraph. With no backend configured, this text is written entirely on your device.")
+
+                heading("Deep AI check (opt-in)")
+                para("The report has one optional feature that works differently: \u{201C}Deep AI check\u{201D} sends the screenshot and the message text to SecondLook's AI backend so a vision model can read them directly. It runs only when you tap it and have accepted a one-time explanation, and you can turn it off any time in About \u{2192} AI. The backend briefly caches the result and does not store the image or text or use them to identify you. Everything else in SecondLook stays on your device.")
 
                 heading("You can wipe it")
                 para("Clearing your saved checks in the Saved tab removes everything SecondLook has stored.")

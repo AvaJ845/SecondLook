@@ -84,13 +84,28 @@ device" tension — Mei signs off because no user content is ever in the payload
 - [x] 7 AI-layer tests (config mapping, secret redaction, offline fallback,
       mock-gateway generation)
 
+### Deep AI check (opt-in, multimodal) — added
+- `secondlook-ai` Worker **deployed**: `https://secondlook-ai.divine-mountain-8173.workers.dev`
+  (`SECONDLOOK_CLIENT_TOKEN` set; provider keys pending — see backend/README).
+- `Config/AIConfig.plist` written (gitignored) → app reports "AI backend".
+- New `deepCheck` task: sends the screenshot (downscaled JPEG) + message text to
+  an OpenRouter vision model (llama-3.2-vision / mistral-small / qwen-2.5-vl /
+  gemini-2.0-flash chain; text-only fallback on a strong model). Returns a
+  READ / CONCERNS / REPLY / VERIFY block, parsed into `DeepCheckResult`.
+- App: `DeepCheckSection` under the report, behind a one-time consent sheet
+  (`secondlook.deepcheck.consented`), revocable in About → AI. Only shows when a
+  backend is configured and there's content.
+- Privacy: default flow unchanged (on-device). Deep check is the one path that
+  transmits user content — declared in the privacy manifest as Other User
+  Content, app-functionality only, not linked to identity, not tracking.
+- 10 AI-layer tests (added deepCheck parsing + not-configured + mock paths).
+
 ### Slice 2 candidates (not built)
-- `verifyEmployer` wired into the UI (checklist card) — task + prompts exist,
-  deterministic builder + view still to do
+- `verifyEmployer` wired into the UI (checklist card) — task + prompts exist
 - Re-check / follow-up: save a thread, re-run as new messages arrive
 - First-run onboarding; iPad layout; localization (OCR + rules + prompts)
-- Paid fallback + real rate-limit store on the Worker before public launch
-- Deploy the Worker, set `AIConfig.plist`, measure summary quality vs. templates
+- Paid fallback + a durable rate-limit store on the Worker before public launch
+- Verify the OpenRouter vision model IDs against the live catalog; tune the chain
 
 ## Open questions
 

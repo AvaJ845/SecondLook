@@ -25,12 +25,21 @@ enum AITask: String, Codable, CaseIterable {
     /// conclusion.
     case verifyEmployer
 
+    /// Opt-in only. A vision model reads the screenshot and/or full message text
+    /// and reasons about whether the requests fit a legitimate hiring process.
+    /// This is the one task that sends the user's message content off-device —
+    /// gated behind an explicit one-time consent in the app.
+    case deepCheck
+
     var defaultTier: ModelTier {
         switch self {
         case .plainSummary, .verifyEmployer: return .fast
-        case .replyCoach: return .quality
+        case .replyCoach, .deepCheck: return .quality
         }
     }
+
+    /// True for the task that transmits the user's message content.
+    var sendsMessageContent: Bool { self == .deepCheck }
 }
 
 /// Who is waiting on a call. A person tapping a button must not queue behind a

@@ -24,7 +24,7 @@ struct AnalyzeView: View {
 
                     analyzeButton
 
-                    if model.text.isEmpty {
+                    if model.text.isEmpty && model.pickedImageData == nil {
                         sampleSection
                     }
 
@@ -48,11 +48,19 @@ struct AnalyzeView: View {
                 }
             }
             .navigationDestination(item: Binding(get: { model.report }, set: { model.report = $0 })) { report in
-                ReportView(report: report, onDone: { model.report = nil })
+                ReportView(report: report, deepInput: model.deepCheckInput, onDone: { model.report = nil })
             }
             .task(id: photoItem) {
                 await model.loadImage(photoItem)
             }
+            #if DEBUG
+            .task {
+                if ProcessInfo.processInfo.arguments.contains("-demo-report"), model.report == nil {
+                    model.useSample(SampleMessages.all[0])
+                    model.analyze()
+                }
+            }
+            #endif
         }
     }
 
@@ -86,11 +94,19 @@ struct AnalyzeView: View {
             }
             .cardStyle()
 
-            PhotosPicker(selection: $photoItem, matching: .images) {
-                Label(model.isReadingImage ? "Reading screenshot…" : "Import a screenshot", systemImage: "photo.on.rectangle")
-                    .font(.subheadline.weight(.medium))
+            HStack {
+                PhotosPicker(selection: $photoItem, matching: .images) {
+                    Label(model.isReadingImage ? "Reading screenshot…" : "Import a screenshot", systemImage: "photo.on.rectangle")
+                        .font(.subheadline.weight(.medium))
+                }
+                .disabled(model.isReadingImage)
+
+                if model.pickedImageData != nil {
+                    Label("Screenshot attached", systemImage: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(Palette.color(for: .clear))
+                }
             }
-            .disabled(model.isReadingImage)
         }
     }
 

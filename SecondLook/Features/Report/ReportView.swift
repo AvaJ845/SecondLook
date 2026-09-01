@@ -2,9 +2,11 @@ import SwiftUI
 
 struct ReportView: View {
     let report: AnalysisReport
+    var deepInput: DeepCheckInput? = nil
     var onDone: (() -> Void)? = nil
 
     @Environment(HistoryStore.self) private var history
+    @Environment(AIClient.self) private var ai
     @Environment(\.dismiss) private var dismiss
     @State private var showSaveDialog = false
     @State private var saveLabel = ""
@@ -18,6 +20,10 @@ struct ReportView: View {
                 stageFraming
 
                 AIInsightsView(report: report)
+
+                if let deepInput, deepInput.hasContent, ai.isConfigured {
+                    DeepCheckSection(input: deepInput)
+                }
 
                 if !report.activeFindings.isEmpty {
                     section("What we found") {

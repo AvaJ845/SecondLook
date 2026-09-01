@@ -28,6 +28,18 @@ struct MockAIGateway: AIGateway {
             - "company name" careers
             - "recruiter name" "company name"
             """
+        case .deepCheck:
+            text = """
+            READ: several things do not line up
+            CONCERNS:
+            - Asks for a Social Security number and a photo of your ID before any interview — a real employer collects these only during onboarding
+            - Mentions sending a check to buy equipment and wiring back the balance, which is a classic fake-check scheme
+            - Pushes to continue on a personal messaging app instead of a company email address
+            REPLY: Thanks for the details. Before I share any documents or personal information, I'd like to confirm the role on a short video call with the hiring manager from a company email address. Could we set that up?
+            VERIFY:
+            - Look up the company's real careers page and confirm this job is posted there
+            - Check the recruiter's name against the company's staff directory or LinkedIn
+            """
         }
         return AIResponse(text: text, model: "mock", cached: false,
                           usage: AIUsage(inputTokens: 0, outputTokens: 0))

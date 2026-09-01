@@ -3,6 +3,7 @@ import SwiftUI
 struct AboutView: View {
     @Environment(AIClient.self) private var ai
     @Environment(LLMLog.self) private var llmLog
+    @AppStorage("secondlook.deepcheck.consented") private var deepCheckConsented = false
 
     var body: some View {
         NavigationStack {
@@ -38,6 +39,17 @@ struct AboutView: View {
                          : "Summaries and reply suggestions are written on your device from the signals SecondLook found. No backend is configured, so the app makes no network calls.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+
+                    if ai.isConfigured {
+                        Toggle(isOn: $deepCheckConsented) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Deep AI check")
+                                Text("Allow sending a screenshot and message text to the AI backend when you tap \u{201C}Deep AI check\u{201D} on a report.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
                     #if DEBUG
                     NavigationLink {
                         DebugLLMLogView()

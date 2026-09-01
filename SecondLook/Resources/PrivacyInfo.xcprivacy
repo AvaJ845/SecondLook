@@ -8,18 +8,35 @@
 	     which rules matched, the hiring stage, and a date - never the message
 	     text itself.
 
-	     The default build ships with no AI backend configured and makes no
-	     network calls. If a backend IS configured (Config/AIConfig.plist), the
-	     only data sent to it is the app's own rule metadata - which signals
-	     fired and the chosen hiring stage - to phrase the plain-language
-	     summary. The message text, screenshots, emails, names, and domains are
-	     never sent. This metadata is not linked to the user's identity. -->
+	     The always-on report is on-device. When an AI backend is configured, the
+	     plain-language summary is phrased server-side from the app's own rule
+	     metadata only (which signals fired, the hiring stage) - never message
+	     content.
+
+	     One opt-in feature transmits user content: "Deep AI check" sends the
+	     screenshot and message text to the backend for a vision model, only on
+	     an explicit tap after a one-time consent. That content is declared below
+	     as Other User Content, used only for app functionality, not linked to
+	     identity, not used for tracking. It is not sent in the default flow. -->
 	<key>NSPrivacyTracking</key>
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array/>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>

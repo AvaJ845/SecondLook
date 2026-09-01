@@ -11,8 +11,16 @@ final class AnalyzeModel {
     var errorMessage: String?
     var report: AnalysisReport?
 
+    /// A downscaled JPEG of the last imported screenshot, kept only so the opt-in
+    /// deep check can send the image itself. Never persisted, cleared on reset.
+    private(set) var pickedImageData: Data?
+
     var canAnalyze: Bool {
-        text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 12
+        text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 12 || pickedImageData != nil
+    }
+
+    var deepCheckInput: DeepCheckInput {
+        DeepCheckInput(text: text, imageData: pickedImageData, stage: stage)
     }
 
     func loadImage(_ item: PhotosPickerItem?) async {
@@ -26,10 +34,11 @@ final class AnalyzeModel {
                 errorMessage = "That image couldn't be opened."
                 return
             }
+            pickedImageData = Self.downscaledJPEG(from: image)
             let extracted = try await TextExtractor.text(from: image)
             let clean = extracted.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !clean.isEmpty else {
-                errorMessage = "No readable text was found in that screenshot."
+                errorMessage = "No readable text was found. You can still paste the message, or run a Deep AI check on the screenshot."
                 return
             }
             text = text.isEmpty ? clean : text + "\n\n" + clean
@@ -48,6 +57,7 @@ final class AnalyzeModel {
         text = ""
         report = nil
         errorMessage = nil
+        pickedImageData = nil
         stage = .firstContact
     }
 
@@ -56,5 +66,32 @@ final class AnalyzeModel {
         stage = sample.stage
         report = nil
         errorMessage = nil
+        pickedImageData = nil
+    }
+
+    /// Re-encodes a screenshot to a JPEG no wider than 1600px so the opt-in deep
+    /// check payload stays small. Returns nil if it can't get under the cap.
+    private static func downscaledJPEG(from image: UIImage) -> Data? {
+        let maxDimension: CGFloat = 1600
+        let scale = min(1, maxDimension / max(image.size.width, image.size.height))
+        let target = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+
+        let rendered: UIImage
+        if scale < 1 {
+            let format = UIGraphicsImageRendererFormat.default()
+            format.scale = 1
+            rendered = UIGraphicsImageRenderer(size: target, format: format).image { _ in
+                image.draw(in: CGRect(origin: .zero, size: target))
+            }
+        } else {
+            rendered = image
+        }
+
+        for quality in [0.7, 0.5, 0.35] as [CGFloat] {
+            if let data = rendered.jpegData(compressionQuality: quality), data.count <= DeepChecker.maxImageBytes {
+                return data
+            }
+        }
+        return rendered.jpegData(compressionQuality: 0.3)
     }
 }

@@ -31,8 +31,16 @@ configured, and written on-device from templates otherwise.
 
 The backend is sent **only which rules fired and the hiring stage** — never your
 message text, a screenshot, an email address, a name, or a domain. With no
-`Config/AIConfig.plist` the app is fully offline and makes no network calls (the
-shipping default). See `SecondLook/Kit/AI/` and `backend/README.md`.
+`Config/AIConfig.plist` the app is fully offline and makes no network calls.
+
+### Deep AI check (opt-in)
+
+The report has one optional control — **Deep AI check** — that works differently:
+it sends the screenshot and message text to a vision model on the backend for a
+closer read. It runs only when you tap it and accept a one-time explanation, and
+it's revocable in About → AI. This is the only path that transmits your message
+content; it's declared in the privacy manifest accordingly. See
+`SecondLook/Kit/AI/DeepCheck.swift` and `backend/`.
 
 ## Privacy (the whole point)
 
