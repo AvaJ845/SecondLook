@@ -5,7 +5,7 @@ Ordered so nothing blocks on something later in the list. The unsigned archive
 builds clean (`ARCHIVE SUCCEEDED` with `CODE_SIGNING_ALLOWED=NO`) — only signing
 + the App Store Connect records remain.
 
-Version is `1.0` (build `2`). `ITSAppUsesNonExemptEncryption` is declared `false`
+Version is `1.0` (build `3`). `ITSAppUsesNonExemptEncryption` is declared `false`
 (HTTPS/TLS only) so no export-compliance prompt per upload. Privacy manifests
 ship in the app and both extensions.
 
