@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SecondLook — app icon · "Second glance"
+     One message bubble, echoed by a ghost of itself: you're looking at it twice.
+     Full-bleed 1024×1024, square (iOS applies its own squircle mask — do NOT
+     round the corners here). Flat: colour, opacity, no shadows.
+     Palette: navy #172033 -> teal #39B7A5 field, white bubble. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="sl-field" x1="90" y1="70" x2="950" y2="970" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#161F31"/>
+      <stop offset="0.55" stop-color="#256560"/>
+      <stop offset="1" stop-color="#39B7A5"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#sl-field)"/>
+
+  <!-- echo — a translucent ghost of the same bubble, offset up-left -->
+  <path fill="#FFFFFF" fill-opacity="0.46"
+        d="M326 284 H618 Q690 284 690 356 V528 Q690 604 618 604 H326
+           Q254 604 254 528 V356 Q254 284 326 284 Z"/>
+  <path fill="none" stroke="#FFFFFF" stroke-opacity="0.74" stroke-width="14"
+        d="M326 284 H618 Q690 284 690 356 V528 Q690 604 618 604 H326
+           Q254 604 254 528 V356 Q254 284 326 284 Z"/>
+
+  <!-- front bubble + tail -->
+  <g fill="#FFFFFF">
+    <path d="M406 360 H698 Q770 360 770 432 V608 Q770 680 698 680 H406
+             Q334 680 334 608 V432 Q334 360 406 360 Z"/>
+    <path d="M412 664 H512 L480 726 Q462 742 444 726 Z"/>
+  </g>
+
+  <!-- Optional accent — the point noticed in the message.
+       Uncomment for the three-colour version. -->
+  <!-- <circle cx="552" cy="512" r="22" fill="#F28B7A"/> -->
+</svg>

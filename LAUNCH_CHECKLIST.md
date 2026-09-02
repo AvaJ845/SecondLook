@@ -70,7 +70,10 @@ Upload**. Same result, handles signing interactively.
       processing (~10–30 min) → add **internal testers** (no review needed).
 - [ ] For **external** testers: fill "What to Test" + the beta description, then
       submit for **Beta App Review** (usually < 24 h, lighter than full review).
-- [ ] App icon legibility: re-check `AppIcon-1024.png` at 60 px before submit.
+- [x] App icon: "Second glance" — the doubled message bubble on the navy→teal
+      brand field. Full-bleed, no baked corners, no alpha. Editable master at
+      `AppStore/icon-source.svg`; re-export a flattened 1024 PNG from it after
+      any tweak. Legibility verified 1024 → 40 px.
 
 ## 2. Backend — turn on device attestation
 
