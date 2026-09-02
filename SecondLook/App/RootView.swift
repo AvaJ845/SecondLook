@@ -20,9 +20,13 @@ struct RootView: View {
                 .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
                 .tag(1)
 
+            LearnView()
+                .tabItem { Label("Learn", systemImage: "graduationcap") }
+                .tag(2)
+
             AboutView()
                 .tabItem { Label("About", systemImage: "info.circle") }
-                .tag(2)
+                .tag(3)
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView { _ in
@@ -43,6 +47,11 @@ struct RootView: View {
         }
         .onAppear {
             #if DEBUG
+            if let i = ProcessInfo.processInfo.arguments.firstIndex(of: "-start-tab"),
+               i + 1 < ProcessInfo.processInfo.arguments.count,
+               let n = Int(ProcessInfo.processInfo.arguments[i + 1]) {
+                tab = n
+            }
             if ProcessInfo.processInfo.arguments.contains("-skip-onboarding") {
                 if PendingCheck.consumeClipboardCheckRequest() { goToCheck() }
                 return

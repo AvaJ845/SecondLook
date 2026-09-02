@@ -318,4 +318,15 @@ enum Rules {
     ]
 
     static func rule(id: String) -> Rule? { all.first { $0.id == id } }
+
+    /// The catalogue for "Your radar", grouped high-to-low. Every rule the
+    /// engine can fire is here — the glossary is a window onto the same data
+    /// the report is built from.
+    static func glossary() -> [(severity: Severity, rules: [Rule])] {
+        Severity.allCases.reversed().compactMap { severity in
+            let rules = all.filter { $0.severity == severity }
+                           .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+            return rules.isEmpty ? nil : (severity, rules)
+        }
+    }
 }

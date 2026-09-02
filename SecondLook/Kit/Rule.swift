@@ -3,7 +3,7 @@ import Foundation
 /// One explainable red-flag rule. Every rule carries its own plain-language
 /// reason and next step — the report is assembled entirely from these strings,
 /// so there is no hidden scoring model to explain.
-struct Rule {
+struct Rule: Identifiable {
     let id: String
     let title: String
     let severity: Severity
