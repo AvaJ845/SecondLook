@@ -5,6 +5,7 @@ import SwiftUI
 /// Entirely on-device — no accounts, no network.
 struct LearnView: View {
     @Environment(Entitlements.self) private var entitlements
+    @Environment(NudgeManager.self) private var nudges
     @State private var progress = PracticeStore.load()
     @State private var showPractice = false
     @State private var showPaywall = false
@@ -57,6 +58,7 @@ struct LearnView: View {
             .sheet(isPresented: $showPractice) {
                 PracticeView { score, total, patterns in
                     progress = PracticeStore.recordRound(score: score, total: total, patterns: patterns)
+                    Task { await nudges.practiceRoundCompleted(progress: progress) }
                 }
             }
             .sheet(isPresented: $showPaywall) { PaywallView(reason: .general) }
@@ -112,5 +114,7 @@ struct LearnView: View {
 }
 
 #Preview {
-    LearnView().environment(Entitlements())
+    LearnView()
+        .environment(Entitlements())
+        .environment(NudgeManager())
 }

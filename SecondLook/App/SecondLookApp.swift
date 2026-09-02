@@ -9,6 +9,8 @@ struct SecondLookApp: App {
     @State private var entitlements: Entitlements
     @State private var subscriptions: SubscriptionManager
     @State private var deepCheckQuota = DeepCheckQuota()
+    @State private var nudges = NudgeManager()
+    @State private var nudgeRouter = NudgeRouter()
 
     init() {
         let log = LLMLog()
@@ -49,9 +51,15 @@ struct SecondLookApp: App {
                 .environment(entitlements)
                 .environment(subscriptions)
                 .environment(deepCheckQuota)
+                .environment(nudges)
+                .environment(nudgeRouter)
                 .tint(Palette.accent)
                 .task {
                     await subscriptions.start()
+                }
+                .task {
+                    nudgeRouter.install()
+                    await nudges.bootstrap(progress: PracticeStore.load(), threads: threads.threads)
                 }
         }
     }

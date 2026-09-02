@@ -5,8 +5,11 @@ struct AboutView: View {
     @Environment(LLMLog.self) private var llmLog
     @Environment(Entitlements.self) private var entitlements
     @Environment(DeepCheckQuota.self) private var quota
+    @Environment(NudgeManager.self) private var nudges
+    @Environment(ThreadStore.self) private var threads
     @AppStorage("secondlook.deepcheck.consented") private var deepCheckConsented = false
     @State private var showPaywall = false
+    @State private var remindersOn = true
 
     var body: some View {
         NavigationStack {
@@ -88,6 +91,24 @@ struct AboutView: View {
                     Text("AI")
                 }
 
+                Section {
+                    Toggle(isOn: $remindersOn) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Helpful reminders")
+                            Text("A gentle weekly nudge to keep your eye sharp, and a note if a flagged conversation goes quiet. Delivered quietly — nothing interrupts you.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    if nudges.authorization == .denied {
+                        Label("Notifications are off for SecondLook in Settings.", systemImage: "bell.slash")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Reminders")
+                }
+
                 Section("Privacy") {
                     NavigationLink {
                         PrivacyView()
@@ -115,6 +136,13 @@ struct AboutView: View {
             .sheet(isPresented: $showPaywall) {
                 PaywallView(reason: .general)
             }
+            .onAppear { remindersOn = nudges.enabled }
+            .onChange(of: remindersOn) { _, on in
+                guard on != nudges.enabled else { return }
+                Task {
+                    await nudges.setEnabled(on, progress: PracticeStore.load(), threads: threads.threads)
+                }
+            }
         }
     }
 
@@ -134,4 +162,6 @@ struct AboutView: View {
         .environment(Entitlements())
         .environment(SubscriptionManager(entitlements: Entitlements()))
         .environment(DeepCheckQuota())
+        .environment(NudgeManager())
+        .environment(ThreadStore(directory: FileManager.default.temporaryDirectory))
 }

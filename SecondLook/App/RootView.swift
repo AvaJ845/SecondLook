@@ -3,6 +3,9 @@ import SwiftUI
 struct RootView: View {
     @AppStorage(OnboardingState.key) private var onboardingCompleted = false
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(ThreadStore.self) private var threadStore
+    @Environment(NudgeManager.self) private var nudges
+    @Environment(NudgeRouter.self) private var nudgeRouter
     @State private var showOnboarding = false
     @State private var tab = 0
 
@@ -35,14 +38,22 @@ struct RootView: View {
             }
             .interactiveDismissDisabled()
         }
-        .onOpenURL { url in
-            if url.scheme == "secondlook" { goToCheck() }
+        .onOpenURL { url in route(url) }
+        .onChange(of: nudgeRouter.pendingDeepLink) { _, url in
+            guard let url else { return }
+            route(url)
+            nudgeRouter.pendingDeepLink = nil
         }
         .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
             // A Control Center / widget tap while the app is backgrounded lands
             // here rather than in `onAppear`.
-            if phase == .active, PendingCheck.consumeClipboardCheckRequest() {
-                goToCheck()
+            if PendingCheck.consumeClipboardCheckRequest() { goToCheck() }
+            // Keep the weekly copy current and reconcile quiet-thread nudges
+            // against the latest thread state.
+            Task {
+                await nudges.refreshWeeklyPractice(progress: PracticeStore.load())
+                await nudges.syncQuietThreads(threadStore.threads)
             }
         }
         .onAppear {
@@ -69,6 +80,15 @@ struct RootView: View {
         tab = 0
         clipboardCheckToken &+= 1
     }
+
+    private func route(_ url: URL) {
+        guard url.scheme == "secondlook" else { return }
+        switch url.host {
+        case "learn":  tab = 2
+        case "thread": tab = 1
+        default:       goToCheck()
+        }
+    }
 }
 
 #Preview {
@@ -80,5 +100,7 @@ struct RootView: View {
         .environment(Entitlements())
         .environment(SubscriptionManager(entitlements: Entitlements()))
         .environment(DeepCheckQuota())
+        .environment(NudgeManager())
+        .environment(NudgeRouter())
         .tint(Palette.accent)
 }

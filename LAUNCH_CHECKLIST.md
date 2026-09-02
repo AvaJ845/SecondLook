@@ -133,6 +133,11 @@ so ASC is the source of truth. Match `SecondLook.storekit` exactly:
       Check; used for App Functionality; **not linked** to identity; **not** used
       for tracking. Matches `SecondLook/Resources/PrivacyInfo.xcprivacy`.
 - [ ] **Category:** Utilities (primary), Business (secondary). Age 4+.
+- [ ] **Notifications:** the app schedules *local* notifications only (a weekly
+      practice nudge + a quiet-thread note), requested as **provisional** so no
+      permission prompt is shown. Nothing to declare, but the review notes can
+      mention it: *"Reminders are local notifications, opt-out in About, no push
+      server."* Users toggle them off under About → Reminders.
 - [ ] Metadata: paste Name / Subtitle / Keywords / description / promo text /
       "what's new" from `AppStore/METADATA.md`.
 - [ ] **Screenshots (6.9"):** ready in `AppStore/screenshots/` — native
