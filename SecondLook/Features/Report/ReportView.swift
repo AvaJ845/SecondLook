@@ -18,6 +18,7 @@ struct ReportView: View {
     @State private var saved = false
     @State private var showShare = false
     @State private var showSafeShare = false
+    @State private var showReport = false
     @State private var showPaywall = false
     @State private var trackedThreadID: UUID?
 
@@ -138,6 +139,18 @@ struct ReportView: View {
                     .tint(Palette.brandTeal)
                 }
 
+                if report.overall == .strong {
+                    Button {
+                        showReport = true
+                    } label: {
+                        Label("Report a job scam", systemImage: "flag")
+                            .font(.subheadline.weight(.medium))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(Palette.brandTeal)
+                }
+
                 DisclaimerFooter()
             }
             .padding(20)
@@ -152,6 +165,9 @@ struct ReportView: View {
         .sheet(isPresented: $showSafeShare) {
             if let sourceText { SafeShareSheet(sourceText: sourceText) }
         }
+        .sheet(isPresented: $showReport) {
+            ReportScamSheet(report: report, sourceText: sourceText)
+        }
         .sheet(isPresented: $showPaywall) {
             PaywallView(reason: .general)
         }
@@ -160,6 +176,7 @@ struct ReportView: View {
             let args = ProcessInfo.processInfo.arguments
             if args.contains("-demo-share") { showShare = true }
             if args.contains("-demo-safeshare") { showSafeShare = true }
+            if args.contains("-demo-ftc") { showReport = true }
         }
         #endif
         .navigationTitle("Second look")

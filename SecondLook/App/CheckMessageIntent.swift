@@ -23,13 +23,23 @@ struct CheckMessageIntent: AppIntent {
 struct SecondLookShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
+            intent: ScamCheckIntent(),
+            phrases: [
+                "Is this a scam, \(.applicationName)",
+                "Check this for scam patterns with \(.applicationName)",
+                "Ask \(.applicationName) about this message",
+            ],
+            shortTitle: "Check for scam patterns",
+            systemImageName: "checkmark.shield"
+        )
+        AppShortcut(
             intent: CheckMessageIntent(),
             phrases: [
                 "Check this with \(.applicationName)",
                 "Take a second look with \(.applicationName)",
-                "Check a job message with \(.applicationName)",
+                "Open \(.applicationName) to check a job message",
             ],
-            shortTitle: "Check a message",
+            shortTitle: "Open to check a message",
             systemImageName: "text.viewfinder"
         )
     }
