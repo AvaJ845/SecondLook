@@ -120,7 +120,9 @@ struct AnalyzeView: View {
                     model.useSample(SampleMessages.all[0])
                 }
                 if args.contains("-demo-report"), model.report == nil {
-                    model.useSample(SampleMessages.all[0])
+                    let idx = (args.firstIndex(of: "-demo-report").map { args.index(after: $0) })
+                        .flatMap { $0 < args.endIndex ? Int(args[$0]) : nil } ?? 0
+                    model.useSample(SampleMessages.all[min(idx, SampleMessages.all.count - 1)])
                     model.analyze()
                 }
             }

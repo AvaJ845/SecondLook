@@ -81,7 +81,7 @@ SecondLook points out patterns commonly seen in job scams. It can't confirm whet
 
 First release. Paste a job message or import a screenshot, pick your hiring stage, and get an explainable report on what's unusual — read entirely on your device. Includes stage-aware red-flag rules, an on-device link check against real careers and applicant-tracking sites, and an optional AI deep check you control.
 
-Also: a "Spot the scam" practice mode and a browsable guide to every pattern; a Control Center check and a Home Screen widget; "Send a safe copy" to forward a suspicious message with your personal numbers stripped; and VoiceOver support — every flag is announced with its severity and its reason.
+Also: a company reality check — when a message name-drops a big employer, SecondLook compares its links to that employer's real careers site, all from a bundled offline list; a "Spot the scam" practice mode and a browsable guide to every pattern; a Control Center check and a Home Screen widget; "Send a safe copy" to forward a suspicious message with your personal numbers stripped; and VoiceOver support — every flag is announced with its severity and its reason.
 
 ## URLs
 

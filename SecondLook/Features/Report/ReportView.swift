@@ -40,6 +40,10 @@ struct ReportView: View {
 
                 stageFraming
 
+                if let employer = report.employer, employer.isConcern {
+                    EmployerCheckCard(check: employer)
+                }
+
                 AIInsightsView(report: report)
 
                 if let deepInput, deepInput.hasContent, ai.isConfigured {
@@ -67,6 +71,12 @@ struct ReportView: View {
                                 onUnlock: { showPaywall = true }
                             )
                         }
+                    }
+                }
+
+                if let employer = report.employer, !employer.isConcern {
+                    section("The company it names") {
+                        EmployerCheckCard(check: employer)
                     }
                 }
 

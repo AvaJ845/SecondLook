@@ -80,6 +80,11 @@ struct ShareRootView: View {
                 ForEach(report.activeFindings) { FindingCard(finding: $0) }
                 ForEach(report.contextFindings) { FindingCard(finding: $0) }
 
+                if let employer = report.employer {
+                    Text("The company it names").font(.headline)
+                    EmployerCheckCard(check: employer)
+                }
+
                 if !report.domains.isEmpty {
                     Text("Links & addresses").font(.headline)
                     ForEach(report.domains) { DomainRow(assessment: $0) }

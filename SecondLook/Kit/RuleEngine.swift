@@ -16,13 +16,15 @@ enum RuleEngine {
         findings = dedupeAndSort(findings)
 
         let domains = DomainChecker.assess(message)
-        let overall = overallLevel(findings: findings, domains: domains)
+        let employer = EmployerCheck.run(message)
+        let overall = overallLevel(findings: findings, domains: domains, employer: employer)
 
         return AnalysisReport(
             stage: stage,
             overall: overall,
             findings: findings,
             domains: domains,
+            employer: employer,
             hadText: !message.isEmpty
         )
     }
@@ -65,7 +67,7 @@ enum RuleEngine {
 
     // MARK: - Overall read
 
-    private static func overallLevel(findings: [Finding], domains: [DomainAssessment]) -> OverallLevel {
+    private static func overallLevel(findings: [Finding], domains: [DomainAssessment], employer: EmployerRealityCheck?) -> OverallLevel {
         let active = findings.filter { !$0.isNormalForStage }
         let critical = active.filter { $0.severity == .critical }.count
         let serious = active.filter { $0.severity == .serious }.count
@@ -75,11 +77,17 @@ enum RuleEngine {
             if case .lookalike = $0.kind { return true }
             return false
         }
+        // A message that names a big employer but links somewhere else weighs
+        // like a serious finding — brand impersonation is a core scam move.
+        let employerMismatch = employer?.isConcern ?? false
 
-        if critical >= 1 || serious >= 2 || (serious >= 1 && hasLookalike) {
+        if critical >= 1
+            || serious >= 2
+            || (serious >= 1 && (hasLookalike || employerMismatch))
+            || (employerMismatch && hasLookalike) {
             return .strong
         }
-        if serious >= 1 || caution >= 2 || hasLookalike {
+        if serious >= 1 || caution >= 2 || hasLookalike || employerMismatch {
             return .review
         }
         return .clear

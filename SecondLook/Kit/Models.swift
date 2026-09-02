@@ -182,12 +182,53 @@ struct DomainAssessment: Identifiable, Equatable, Hashable {
     }
 }
 
+/// When a message names a well-known employer, how its links compare to that
+/// employer's real careers site. Evaluated on-device against the bundled
+/// `Employers` list — nothing is looked up.
+struct EmployerRealityCheck: Equatable, Hashable {
+    var employer: String        // "Wells Fargo"
+    var careersURL: String      // "wellsfargo.com/careers" — where the real jobs are
+
+    enum Verdict: Equatable, Hashable {
+        /// A link in the message goes to the employer's own domain — consistent.
+        case linkMatches
+        /// The employer is named but there's no link to weigh.
+        case noLink
+        /// Links are present and none of them is the employer's real domain.
+        case linkMismatch(seen: [String])
+    }
+    var verdict: Verdict
+
+    var isConcern: Bool { if case .linkMismatch = verdict { return true }; return false }
+
+    var headline: String {
+        switch verdict {
+        case .linkMatches:  return "The link matches \(employer)"
+        case .noLink:       return "This names \(employer)"
+        case .linkMismatch: return "Says \(employer), but the links go elsewhere"
+        }
+    }
+
+    var detail: String {
+        switch verdict {
+        case .linkMatches:
+            return "A link in this message goes to \(employer)'s own site. That's consistent with a real posting — still confirm the specific role on \(careersURL)."
+        case .noLink:
+            return "If this turns out to be worth pursuing, apply directly at \(careersURL) — type it in yourself rather than following a link from a message."
+        case .linkMismatch(let seen):
+            let links = seen.prefix(2).joined(separator: ", ")
+            return "This says it's from \(employer), but its links go to \(links). \(employer) posts its jobs at \(careersURL); a real recruiter would send you there. Open that address yourself — don't use a link from this message."
+        }
+    }
+}
+
 /// The full result rendered by `ReportView`.
 struct AnalysisReport: Equatable, Hashable {
     var stage: HiringStage
     var overall: OverallLevel
     var findings: [Finding]
     var domains: [DomainAssessment]
+    var employer: EmployerRealityCheck? = nil
     var hadText: Bool
 
     var activeFindings: [Finding] { findings.filter { !$0.isNormalForStage } }
