@@ -1,9 +1,15 @@
 import SwiftUI
 import PhotosUI
+import WidgetKit
 
 struct AnalyzeView: View {
+    /// Bumped by `RootView` when a widget / Control Center / URL entry point asks
+    /// this tab to offer the clipboard.
+    var clipboardCheckToken: Int = 0
+
     @Environment(Entitlements.self) private var entitlements
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.scenePhase) private var scenePhase
     @State private var model = AnalyzeModel()
     @State private var pendingReview = false
     @State private var photoItem: PhotosPickerItem?
@@ -13,6 +19,13 @@ struct AnalyzeView: View {
     @AppStorage("secondlook.upsell.shown") private var upsellShown = false
     @State private var activeSheet: ActiveSheet?
 
+    /// Whether to show the "check what you copied?" chip. We never read the
+    /// pasteboard's contents to decide this — only `hasStrings` (no permission
+    /// prompt) — and track `changeCount` so a dismissed offer doesn't come back
+    /// until the user copies something new.
+    @State private var clipboardOffer = false
+    @State private var dismissedChangeCount = -1
+
     private enum ActiveSheet: Int, Identifiable { case upsell, paywall; var id: Int { rawValue } }
 
     var body: some View {
@@ -20,6 +33,10 @@ struct AnalyzeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     intro
+
+                    if clipboardOffer {
+                        clipboardChip()
+                    }
 
                     messageInput
 
@@ -59,6 +76,9 @@ struct AnalyzeView: View {
             .navigationDestination(item: Binding(get: { model.report }, set: { model.report = $0 })) { report in
                 ReportView(report: report, deepInput: model.deepCheckInput, sourceText: model.text, onDone: { model.report = nil })
             }
+            .onAppear { refreshClipboardOffer() }
+            .onChange(of: clipboardCheckToken) { _, _ in refreshClipboardOffer(force: true) }
+            .onChange(of: scenePhase) { _, phase in if phase == .active { refreshClipboardOffer() } }
             .task(id: photoItem) {
                 await model.loadImage(photoItem)
             }
@@ -180,13 +200,7 @@ struct AnalyzeView: View {
     private var analyzeButton: some View {
         Button {
             editorFocused = false
-            model.analyze()
-            if let report = model.report {
-                firstCheckCompleted = true
-                if report.overall != .clear, ReviewPrompt.shouldRequestReview() {
-                    pendingReview = true
-                }
-            }
+            runAnalysis()
         } label: {
             Text("Take a second look")
                 .font(.headline)
@@ -195,6 +209,90 @@ struct AnalyzeView: View {
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
         .disabled(!model.canAnalyze)
+    }
+
+    private func runAnalysis() {
+        model.analyze()
+        guard let report = model.report else { return }
+        firstCheckCompleted = true
+        UsageStats.record(flagged: report.overall != .clear)
+        WidgetCenter.shared.reloadAllTimelines()
+        if report.overall != .clear, ReviewPrompt.shouldRequestReview() {
+            pendingReview = true
+        }
+    }
+
+    // MARK: - Clipboard chip
+
+    private func refreshClipboardOffer(force: Bool = false) {
+        guard model.text.isEmpty, model.report == nil else { clipboardOffer = false; return }
+        #if canImport(UIKit)
+        let pb = UIPasteboard.general
+        // `hasStrings` and `changeCount` never present the paste-permission
+        // prompt; `.string` would, so we don't touch it until the user taps.
+        guard pb.hasStrings else { clipboardOffer = false; return }
+        if !force, pb.changeCount == dismissedChangeCount { clipboardOffer = false; return }
+        clipboardOffer = true
+        #else
+        clipboardOffer = false
+        #endif
+    }
+
+    private func clipboardChip() -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "doc.on.clipboard")
+                .foregroundStyle(Palette.brandTeal)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Check what you copied?")
+                    .font(.subheadline.weight(.semibold))
+                Text("Paste a job message you copied and SecondLook will look it over.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 14) {
+                    Button("Check it") { checkClipboard() }
+                        .font(.subheadline.weight(.medium))
+                    Button("Not now") {
+                        #if canImport(UIKit)
+                        dismissedChangeCount = UIPasteboard.general.changeCount
+                        #endif
+                        clipboardOffer = false
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
+                .padding(.top, 2)
+            }
+            Spacer(minLength: 0)
+        }
+        .cardStyle()
+    }
+
+    /// Reads the pasteboard — this is the one place that does, and only in direct
+    /// response to the user tapping "Check it", so the system paste prompt (if
+    /// shown) is expected.
+    private func checkClipboard() {
+        clipboardOffer = false
+        #if canImport(UIKit)
+        let pb = UIPasteboard.general
+        dismissedChangeCount = pb.changeCount
+        guard let text = pb.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !text.isEmpty else {
+            model.errorMessage = "Nothing to check — copy a job message first, then tap Check it."
+            return
+        }
+        model.errorMessage = nil
+        model.text = text
+        model.stage = .unsure
+        model.report = nil
+        if ClipboardHeuristic.looksLikeAMessage(text) {
+            runAnalysis()
+        } else {
+            // Doesn't look like a conversation — drop it in the box and let the
+            // user add context / pick a stage rather than analyzing noise.
+            editorFocused = true
+        }
+        #endif
     }
 
     private var sampleSection: some View {

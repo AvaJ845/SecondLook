@@ -5,9 +5,23 @@ Ordered so nothing blocks on something later in the list. The unsigned archive
 builds clean (`ARCHIVE SUCCEEDED` with `CODE_SIGNING_ALLOWED=NO`) — only signing
 + the App Store Connect records remain.
 
-Version is `1.0` (build `1`). `ITSAppUsesNonExemptEncryption` is declared `false`
+Version is `1.0` (build `2`). `ITSAppUsesNonExemptEncryption` is declared `false`
 (HTTPS/TLS only) so no export-compliance prompt per upload. Privacy manifests
-ship in both the app and the share extension.
+ship in the app and both extensions.
+
+The app now has **three** targets: `SecondLook`, `ShareExtension`, and
+`SecondLookWidgets` (Control Center control + Home/Lock Screen widget), all
+sharing the App Group **`group.com.avaresearch.secondlook`**.
+
+## 0. Capabilities (one-time, in the Apple Developer portal or via Xcode)
+
+- [ ] **App Groups** — with automatic signing + `-allowProvisioningUpdates`,
+      Xcode creates `group.com.avaresearch.secondlook` and adds it to the
+      `com.avaresearch.secondlook`, `.share`, and `.widgets` App IDs on first
+      archive. If you sign manually, add the App Groups capability to all three
+      App IDs and select that group.
+- [ ] Register the widget bundle id **`com.avaresearch.secondlook.widgets`** as
+      an App ID (automatic signing does this too).
 
 ## 1. Get to TestFlight
 

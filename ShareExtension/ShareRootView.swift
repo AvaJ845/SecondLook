@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 /// The share-sheet surface. A stage picker plus the shared report components.
 /// Saving to history lives in the main app, so there's no persistence here.
@@ -9,6 +10,8 @@ struct ShareRootView: View {
     @State private var text: String = ""
     @State private var stage: HiringStage = .unsure
     @State private var report: AnalysisReport?
+    /// One usage tally per shared message, not once per stage re-run.
+    @State private var counted = false
 
     var body: some View {
         NavigationStack {
@@ -102,6 +105,12 @@ struct ShareRootView: View {
     private func analyze() {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        report = RuleEngine.analyze(text: trimmed, stage: stage)
+        let result = RuleEngine.analyze(text: trimmed, stage: stage)
+        report = result
+        if !counted {
+            counted = true
+            UsageStats.record(flagged: result.overall != .clear)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 }
