@@ -54,8 +54,9 @@ enum DeepCheckError: Error, LocalizedError {
 struct DeepChecker {
     var ai: AIClient
 
-    /// Images are capped so the base64 payload stays reasonable.
-    static let maxImageBytes = 900_000
+    /// Images are capped so the base64 payload stays small — a big screenshot
+    /// is a slow upload *and* a slow read for the vision model.
+    static let maxImageBytes = 500_000
 
     func run(_ input: DeepCheckInput) async throws -> DeepCheckResult {
         guard ai.isConfigured else { throw DeepCheckError.notConfigured }
@@ -91,8 +92,14 @@ struct DeepChecker {
     private static func describe(_ error: AIGatewayError) -> String {
         switch error {
         case .server(let status) where status == 429: return "The AI backend is busy right now. Try again in a minute."
+        case .server(let status) where status == 504: return "The deep check took too long this time. Try again in a moment."
         case .server(let status): return "The AI backend returned an error (\(status))."
-        case .transport, .decoding, .notConfigured: return "The AI backend couldn't be reached. Try again in a moment."
+        case .transport(let inner):
+            if (inner as? URLError)?.code == .timedOut {
+                return "The deep check took too long this time. Try again in a moment."
+            }
+            return "The AI backend couldn't be reached. Check your connection and try again."
+        case .decoding, .notConfigured: return "The AI backend couldn't be reached. Try again in a moment."
         }
     }
 

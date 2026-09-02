@@ -130,8 +130,27 @@ final class AIClient {
             latencyMS: Int(Date().timeIntervalSince(start) * 1000),
             cached: cached,
             ok: ok,
-            errorKind: error.map { "\($0)" }
+            errorKind: error.map(Self.shortKind)
         ))
+    }
+
+    /// A short, stable label for the call log — never the raw NSError dump.
+    private static func shortKind(_ error: Error) -> String {
+        if let gateway = error as? AIGatewayError {
+            switch gateway {
+            case .notConfigured: return "not-configured"
+            case .decoding: return "bad-response"
+            case .server(let status) where status == 429: return "rate-limited"
+            case .server(let status) where status == 504: return "upstream-timeout"
+            case .server(let status): return "http-\(status)"
+            case .transport(let inner):
+                return (inner as? URLError)?.code == .timedOut ? "timeout"
+                     : (inner as? URLError)?.code == .notConnectedToInternet ? "offline"
+                     : "transport"
+            }
+        }
+        if (error as? URLError)?.code == .timedOut { return "timeout" }
+        return "error"
     }
 
     private static func makeGateway(for config: AIConfiguration) -> AIGateway {

@@ -97,19 +97,50 @@ curl -s "$BASE/v1/generate" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: 
 ## Model chains
 
 No paid spend: NVIDIA NIM serverless + OpenRouter `:free` only (a hard skip in
-the call loop blocks any non-`:free` OpenRouter id). Chosen 2026-08-31 — ids
-drift, so re-check with the `/v1/models` routes and edit the constants at the top
-of `src/worker.js`.
+the call loop blocks any non-`:free` OpenRouter id).
+
+**Verified working 2026-09-01** by probing the deployed worker with
+`POST /v1/generate?only=<id>`:
+
+| id | result |
+| --- | --- |
+| `nvidia:nvidia/nemotron-3.5-lightning-30b-a3b` | 200, ~6 s (emits a reasoning preamble — `stripReasoning()` removes it) |
+| `openrouter:minimax/minimax-m2.7:free` | 200, ~4.5 s, clean |
+| `nvidia:moonshotai/kimi-k3` | **hangs 20 s** — was the deepCheck timeout. Removed from every chain. |
+| `nvidia:zai-org/glm-5.3-flash` | **404** — never existed on NIM. Removed. |
+| other `nvidia:` catalog ids (gemma-3, kimi-k2.6, llama-3.x…) | 404 "not found for account" — this key serves very few |
+
+A model appearing in `/v1/models?provider=nvidia` is **not** proof this key can
+call it. Re-probe with `?only=` before trusting a new id.
 
 | chain | models |
 | --- | --- |
-| text (fast) | **glm-5.3-flash** → **kimi-k3** → glm-5.2:free → minimax-m2.7:free |
-| text (quality) | **kimi-k3** → **glm-5.3-flash** → minimax-m2.7:free → nemotron-3-ultra:free |
-| deepCheck (vision) | **kimi-k3** → gemma-4-31b:free → minimax-m3:free → nemotron-3-nano-omni:free → gemma-4-26b:free → (text-only retry on glm-5.3-flash) |
+| text (fast) | **minimax-m2.7:free** → nemotron-3.5-lightning → glm-5.2:free |
+| text (quality) | **minimax-m2.7:free** → nemotron-3.5-lightning → glm-5.2:free → nemotron-3-ultra:free |
+| deepCheck (vision) | **minimax-m3:free** → gemma-4-31b:free → (text-only last resort on minimax-m2.7:free, image stripped) |
+| deepCheck (no image) | **minimax-m2.7:free** → nemotron-3.5-lightning |
 
-The `nvidia:zai-org/glm-5.3-flash` and `nvidia:moonshotai/kimi-k3` ids are a best
-guess — run `/v1/models?provider=nvidia` and correct them if NVIDIA namespaces
-them differently. A wrong id just fails over to the next model.
+### Resilience
+
+- **Circuit breaker** (`breakerOpen`/`breakerTrip`): a model that hangs (504),
+  404s, or 5xx's is skipped for 4 min on that isolate — unless it's the last
+  option left. Stops one bad model burning the whole time budget on every
+  request (exactly what kimi-k3 did).
+- **`stripReasoning()`**: removes `<think>…</think>` and, for label-structured
+  tasks, anything before the first real label, so a reasoning model's scratchpad
+  never reaches the app.
+
+### Time budget
+
+The app waits ~60 s for a `deepCheck` and ~22 s for a text call, then falls back
+(deterministic on-device result for text; an error for `deepCheck`). The worker
+therefore runs its fallback chain against a **total wall-clock budget**
+(`REQUEST_BUDGET_MS` = 50 s for `deepCheck`, 20 s for text) — `planAttempt()`
+shortens or skips later attempts so the worker always answers *before* the app
+gives up. A whole-chain timeout returns **504** (`"upstream timeout"`), which the
+app shows as "took too long — try again", distinct from a real backend error.
+This is why the vision chain is only two models: a slow first model plus one
+fallback is all that fits. `npm test` covers the budget math.
 
 ## Redeploy
 

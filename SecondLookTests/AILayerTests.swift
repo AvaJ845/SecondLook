@@ -113,6 +113,46 @@ final class AILayerTests: XCTestCase {
         }
     }
 
+    private struct ThrowingGateway: AIGateway {
+        let error: AIGatewayError
+        func run(_ request: AIRequest) async throws -> AIResponse { throw error }
+    }
+
+    func testDeepCheckUpstreamTimeoutReadsAsTookTooLong() async {
+        let client = AIClient(
+            configuration: AIConfiguration(baseURL: URL(string: "https://mock.local")!, clientToken: "t"),
+            gatewayOverride: ThrowingGateway(error: .server(status: 504))
+        )
+        do {
+            _ = try await DeepChecker(ai: client).run(
+                DeepCheckInput(text: "long enough job message text to pass the guard", imageData: nil, stage: .firstContact)
+            )
+            XCTFail("expected failure")
+        } catch let DeepCheckError.failed(why) {
+            XCTAssertTrue(why.lowercased().contains("took too long"), "got: \(why)")
+        } catch {
+            XCTFail("wrong error \(error)")
+        }
+    }
+
+    func testDeepCheckConnectionTimeoutReadsAsTookTooLong() async {
+        let timedOut = URLError(.timedOut)
+        let client = AIClient(
+            configuration: AIConfiguration(baseURL: URL(string: "https://mock.local")!, clientToken: "t"),
+            gatewayOverride: ThrowingGateway(error: .transport(timedOut))
+        )
+        do {
+            _ = try await DeepChecker(ai: client).run(
+                DeepCheckInput(text: "long enough job message text to pass the guard", imageData: nil, stage: .firstContact)
+            )
+            XCTFail("expected failure")
+        } catch let DeepCheckError.failed(why) {
+            XCTAssertTrue(why.lowercased().contains("took too long"), "got: \(why)")
+        } catch {
+            XCTFail("wrong error \(error)")
+        }
+    }
+
     #if DEBUG
     func testDeepCheckWithMockGatewayParses() async throws {
         let client = AIClient(

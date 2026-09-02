@@ -45,37 +45,45 @@
 
 // ─── models — no paid spend ───────────────────────────────────────────────────
 // Two providers, both free for this account:
-//   nvidia:  NVIDIA NIM serverless. Lead here — kimi-k3 and GLM-5.3-Flash are
-//            strong and fast. Ids verified via GET /v1/models?provider=nvidia.
 //   openrouter:  ":free" models only (no credit; ~50 req/day/account shared).
-//            A hard skip in the call loop blocks any openrouter id without ":free".
+//            Lead here — this key can call more of them than NVIDIA's. A hard
+//            skip in the call loop blocks any openrouter id without ":free".
+//   nvidia:  NVIDIA NIM serverless. This key serves only a couple of ids (most
+//            of the /v1/models catalog 404s), so it's a backup, not the lead.
 //
-// Model ids drift fast. Refresh and edit these:
-//   GET /v1/models                     → OpenRouter free text + vision ids
-//   GET /v1/models?provider=nvidia     → NVIDIA NIM catalog
-// Chosen 2026-08-31.
-const NV_GLM_FLASH = "nvidia:zai-org/glm-5.3-flash";        // fast, strong — verify id
-const NV_KIMI      = "nvidia:moonshotai/kimi-k3";           // quality, multimodal — verify id
-const OR_GLM       = "openrouter:z-ai/glm-5.2:free";
-const OR_MINIMAX   = "openrouter:minimax/minimax-m2.7:free";
+// Model ids drift fast, and a model in the catalog is NOT proof the account can
+// call it (NVIDIA lists ~80, this key serves a handful). Verified working
+// 2026-09-01 by probing the deployed worker with `?only=<id>`:
+//   nvidia:nvidia/nemotron-3.5-lightning-30b-a3b   200  ~6s   (reasoning preamble — stripped below)
+//   openrouter:minimax/minimax-m2.7:free           200  ~4.5s clean
+//   nvidia:moonshotai/kimi-k3                       HANGS 20s  ← was the deepCheck timeout; do NOT use
+//   nvidia:zai-org/glm-5.3-flash                    404        ← never existed on NIM
+// Refresh with: GET /v1/models  and  GET /v1/models?provider=nvidia
+const NV_LIGHTNING = "nvidia:nvidia/nemotron-3.5-lightning-30b-a3b"; // verified 200
+const OR_MINIMAX   = "openrouter:minimax/minimax-m2.7:free";         // verified 200, clean
+const OR_GLM       = "openrouter:z-ai/glm-5.2:free";                 // free_text list; sometimes 429
 const OR_NEM_ULTRA = "openrouter:nvidia/nemotron-3-ultra-550b-a55b:free";
 
-// Vision-capable. kimi-k3 leads (NVIDIA, multimodal); OpenRouter free vision
-// models back it up. If every vision model fails we retry text-only.
+// Vision-capable, from the /v1/models free_vision list. NVIDIA vision models all
+// returned "not found for account" on this key, so vision runs on OpenRouter
+// free. The deepCheck chain is SHORT on purpose: the app waits ~60s total, so we
+// can only afford a primary + one vision fallback + one text-only last resort
+// within the budget (see REQUEST_BUDGET_MS).
 const VISION_MODELS = [
-  NV_KIMI,
-  "openrouter:google/gemma-4-31b-it:free",
   "openrouter:minimax/minimax-m3:free",
-  "openrouter:nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+  "openrouter:google/gemma-4-31b-it:free",
   "openrouter:google/gemma-4-26b-a4b-it:free",
+  "openrouter:nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
 ];
-const VISION_TEXT_FALLBACK = [NV_GLM_FLASH, OR_GLM, OR_MINIMAX];
+// Actually attempted for a deepCheck request, in order.
+const DEEPCHECK_VISION = ["openrouter:minimax/minimax-m3:free", "openrouter:google/gemma-4-31b-it:free"];
+const VISION_TEXT_FALLBACK = [OR_MINIMAX]; // image stripped, last resort only
 
 const TASK_MODELS = {
-  plainSummary:   [NV_GLM_FLASH, NV_KIMI, OR_GLM, OR_MINIMAX],
-  verifyEmployer: [NV_GLM_FLASH, NV_KIMI, OR_GLM, OR_MINIMAX],
-  replyCoach:     [NV_KIMI, NV_GLM_FLASH, OR_MINIMAX, OR_NEM_ULTRA],
-  deepCheck:      VISION_MODELS, // + VISION_TEXT_FALLBACK appended at request time
+  plainSummary:   [OR_MINIMAX, NV_LIGHTNING, OR_GLM],
+  verifyEmployer: [OR_MINIMAX, NV_LIGHTNING, OR_GLM],
+  replyCoach:     [OR_MINIMAX, NV_LIGHTNING, OR_GLM, OR_NEM_ULTRA],
+  deepCheck:      VISION_MODELS, // presence gates the task; real chain built per request
 };
 
 const MAX_TOKENS = {
@@ -85,7 +93,50 @@ const MAX_TOKENS = {
   deepCheck:      700,
 };
 
-const MODEL_TIMEOUT_MS = 20_000; // vision is slower; app's own timeout is 25s
+// Per-attempt ceiling. Also capped by whatever's left of REQUEST_BUDGET_MS, so
+// a slow first model can't starve the fallback.
+const MODEL_TIMEOUT_MS = 18_000;
+// Total wall-clock for the whole fallback chain. Must stay comfortably under
+// the app's deepCheck timeout (60s) minus the client<->worker round trip and
+// JSON handling, so the worker always answers before the app gives up.
+const REQUEST_BUDGET_MS = 50_000;
+// Don't start another model attempt with less than this left on the budget.
+const MIN_ATTEMPT_MS = 7_000;
+
+/// Given the total budget and how long the chain has already run, decide
+/// whether to start another model attempt and with what per-attempt timeout.
+/// Pure — unit-tested in test/budget.test.mjs.
+export function planAttempt(budgetMs, elapsedMs, perModelMs = MODEL_TIMEOUT_MS, minMs = MIN_ATTEMPT_MS) {
+  const remaining = budgetMs - elapsedMs;
+  if (remaining < minMs) return { go: false, timeoutMs: 0 };
+  return { go: true, timeoutMs: Math.max(minMs, Math.min(perModelMs, remaining - 1_000)) };
+}
+
+// Per-isolate circuit breaker. A model that just timed out or 5xx'd is very
+// likely to do it again on the next request — skip it for a few minutes rather
+// than burn the whole time budget on it again (this is exactly what kimi-k3 did).
+const BREAKER_COOLDOWN_MS = 4 * 60_000;
+const breaker = new Map(); // model id -> epoch ms it may be retried
+export function breakerOpen(model, now = Date.now()) {
+  const until = breaker.get(model);
+  return until != null && now < until;
+}
+export function breakerTrip(model, now = Date.now()) { breaker.set(model, now + BREAKER_COOLDOWN_MS); }
+export function _breakerReset() { breaker.clear(); }
+
+/// Some models (reasoning variants) prefix their answer with a visible
+/// scratchpad. Strip `<think>…</think>` tags, and for our label-structured
+/// tasks drop anything before the first real label so a preamble can't leak.
+export function stripReasoning(text, task) {
+  if (!text) return text;
+  let t = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  const firstLabel = { deepCheck: /^READ:/im, verifyEmployer: /^CHECKS:/im }[task];
+  if (firstLabel) {
+    const m = t.match(firstLabel);
+    if (m && m.index > 0) t = t.slice(m.index).trim();
+  }
+  return t;
+}
 
 const GUARDRAILS =
   " Never state or imply that a specific named company, recruiter, or person is a scammer, " +
@@ -217,7 +268,9 @@ async function handle(request, env, ctx) {
     if (only) {
       chain = [only];
     } else if (task === "deepCheck") {
-      chain = [...VISION_MODELS, ...VISION_TEXT_FALLBACK]; // text-only retry last
+      // Short by design — see REQUEST_BUDGET_MS. With no image it's a plain
+      // text call, so a couple of text models fit the budget fine.
+      chain = isVision ? [...DEEPCHECK_VISION, ...VISION_TEXT_FALLBACK] : [OR_MINIMAX, NV_LIGHTNING];
     } else {
       chain = TASK_MODELS[task];
     }
@@ -248,12 +301,34 @@ async function handle(request, env, ctx) {
     const maxTokens = MAX_TOKENS[task] || 400;
 
     const errs = [];
+    const startedAt = Date.now();
+    // Text tasks fail fast so the app's deterministic on-device result takes
+    // over; deepCheck has no on-device equivalent and the user is waiting, so
+    // it gets the full budget.
+    const budget = task === "deepCheck" ? REQUEST_BUDGET_MS : 20_000;
+    let ranOutOfTime = false;
+    let lastWasTimeout = false;
     for (const model of chain) {
       // Safety net: never call a paid OpenRouter model, whatever the chain says.
       if (model.startsWith("openrouter:") && !model.endsWith(":free")) {
         errs.push(`${model}: skipped (not a :free model)`);
         continue;
       }
+      // Circuit breaker — skip a model that just failed hard on this isolate,
+      // unless it's the only thing left to try.
+      if (breakerOpen(model) && !(only || model === chain[chain.length - 1])) {
+        errs.push(`${model}: skipped (breaker open)`);
+        continue;
+      }
+      // Budget guard — don't start an attempt we can't finish before the app
+      // times out. Guarantees the worker answers first.
+      const plan = planAttempt(budget, Date.now() - startedAt);
+      if (!plan.go) {
+        ranOutOfTime = true;
+        errs.push(`${model}: skipped (out of time budget)`);
+        break;
+      }
+      const attemptTimeout = plan.timeoutMs;
       // Once we've dropped to the text-only fallback list, strip the image.
       const textOnly = VISION_TEXT_FALLBACK.includes(model);
       const msgs = textOnly
@@ -261,14 +336,19 @@ async function handle(request, env, ctx) {
            { role: "user", content: buildUserContent(prompt, { text: input.text, hiring_stage: input.hiring_stage }) }]
         : messages;
       try {
-        const out = await callModel(model, msgs, temperature, maxTokens, env);
-        const payload = { text: out.text, model: out.model, cached: false, usage: out.usage };
+        const out = await callModel(model, msgs, temperature, maxTokens, env, attemptTimeout);
+        const payload = { text: stripReasoning(out.text, task), model: out.model, cached: false, usage: out.usage };
+        if (!payload.text) throw Object.assign(new Error("empty after cleanup"), { status: 502 });
         const ttl = task === "deepCheck" ? 600 : 60 * 60 * 6;
         if (!only) ctx.waitUntil(cache.put(cachedURL, json(payload, 200, ttl)));
         return json(payload);
       } catch (e) {
         const line = `${model}: ${e.message || e}`;
         errs.push(line);
+        lastWasTimeout = e.status === 504;
+        // Trip the breaker on a hang, a dead id, or a server-side failure —
+        // not on a 429 (transient, will clear on its own).
+        if (e.status === 504 || e.status === 404 || (e.status >= 500 && e.status !== 501)) breakerTrip(model);
         console.log("provider failed:", line);
         if (e.status === 401 || e.status === 403) break;
       }
@@ -276,10 +356,13 @@ async function handle(request, env, ctx) {
     // Don't echo upstream provider error text / model ids back to the client.
     if (only) return json({ error: "all providers failed", detail: errs }, 502);
     console.log("all providers failed:", errs.join(" | "));
-    return json({ error: "all providers failed" }, 502);
+    // 504 tells the app "took too long" (vs. a generic backend error) so it can
+    // show the right message and the user knows a retry is worth it.
+    const status = ranOutOfTime || lastWasTimeout ? 504 : 502;
+    return json({ error: status === 504 ? "upstream timeout" : "all providers failed" }, status);
 }
 
-async function callModel(model, messages, temperature, maxTokens, env) {
+async function callModel(model, messages, temperature, maxTokens, env, timeoutMs = MODEL_TIMEOUT_MS) {
   let baseURL, apiKey, realModel;
   const extraHeaders = {};
   if (model.startsWith("nvidia:")) {
@@ -300,7 +383,7 @@ async function callModel(model, messages, temperature, maxTokens, env) {
   if (!apiKey) { const err = new Error(`no key for ${model}`); err.status = 500; throw err; }
 
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), MODEL_TIMEOUT_MS);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   let res;
   try {
     res = await fetch(`${baseURL}/chat/completions`, {
@@ -316,7 +399,7 @@ async function callModel(model, messages, temperature, maxTokens, env) {
       body: JSON.stringify({ model: realModel, messages, temperature, stream: false, max_tokens: maxTokens }),
     });
   } catch (e) {
-    const err = new Error(e.name === "AbortError" ? `timeout after ${MODEL_TIMEOUT_MS}ms` : String(e));
+    const err = new Error(e.name === "AbortError" ? `timeout after ${timeoutMs}ms` : String(e));
     err.status = 504;
     throw err;
   } finally {

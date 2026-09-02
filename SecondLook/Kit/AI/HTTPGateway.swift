@@ -9,6 +9,8 @@ import Foundation
 ///   body:  { "task", "tier", "input": {..}, "prompt" }
 ///   200:   { "text", "model", "cached", "usage": { "inputTokens", "outputTokens" } }
 ///   429:   rate limited (per-install Durable Object) — surfaced as `.server(429)`
+///   504:   backend ran its whole model chain without an answer in time —
+///          surfaced as `.server(504)` → "took too long", worth a retry
 ///
 /// The install token comes from `CredentialProvider`, which registers lazily on
 /// the first backend call. A 401 invalidates it and the request retries once.
@@ -28,11 +30,22 @@ struct HTTPGateway: AIGateway {
 
     static let defaultSession: URLSession = {
         let c = URLSessionConfiguration.default
-        c.timeoutIntervalForRequest = 25
-        c.timeoutIntervalForResource = 30
+        // Generous session ceilings; each request tightens `timeoutInterval`
+        // per task below. Deep AI Check runs a vision model + a fallback on the
+        // backend and the user waits on it with a spinner, so it gets the full
+        // budget; the always-on text calls stay short.
+        c.timeoutIntervalForRequest = 60
+        c.timeoutIntervalForResource = 75
         c.waitsForConnectivity = false
         return URLSession(configuration: c)
     }()
+
+    /// Per-request timeout. `deepCheck` has to survive one backend model
+    /// timing out and a fallback still answering; text tasks should fail fast
+    /// so the deterministic on-device result takes over.
+    private static func timeout(for task: AITask) -> TimeInterval {
+        task == .deepCheck ? 60 : 22
+    }
 
     func run(_ request: AIRequest) async throws -> AIResponse {
         guard config.baseURL != nil else { throw AIGatewayError.notConfigured }
@@ -50,6 +63,7 @@ struct HTTPGateway: AIGateway {
 
         var urlRequest = URLRequest(url: baseURL.appendingPathComponent("v1/generate"))
         urlRequest.httpMethod = "POST"
+        urlRequest.timeoutInterval = Self.timeout(for: request.task)
         urlRequest.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.httpBody = try JSONEncoder().encode(Wire.Request(

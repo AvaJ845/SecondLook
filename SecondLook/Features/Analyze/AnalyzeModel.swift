@@ -83,10 +83,12 @@ final class AnalyzeModel {
         pickedImageData = nil
     }
 
-    /// Re-encodes a screenshot to a JPEG no wider than 1600px so the opt-in deep
-    /// check payload stays small. Returns nil if it can't get under the cap.
+    /// Re-encodes a screenshot to a JPEG no wider than 1200px so the opt-in deep
+    /// check payload uploads fast and the vision model isn't reading a 2 MB
+    /// image. Chat text stays legible well below this. Returns nil if it can't
+    /// get under the cap.
     private static func downscaledJPEG(from image: UIImage) -> Data? {
-        let maxDimension: CGFloat = 1600
+        let maxDimension: CGFloat = 1200
         let scale = min(1, maxDimension / max(image.size.width, image.size.height))
         let target = CGSize(width: image.size.width * scale, height: image.size.height * scale)
 
@@ -101,11 +103,11 @@ final class AnalyzeModel {
             rendered = image
         }
 
-        for quality in [0.7, 0.5, 0.35] as [CGFloat] {
+        for quality in [0.6, 0.45, 0.3] as [CGFloat] {
             if let data = rendered.jpegData(compressionQuality: quality), data.count <= DeepChecker.maxImageBytes {
                 return data
             }
         }
-        return rendered.jpegData(compressionQuality: 0.3)
+        return rendered.jpegData(compressionQuality: 0.25)
     }
 }

@@ -2,11 +2,13 @@
   "name": "secondlook-ai",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "SecondLook AI gateway — Cloudflare Worker. Same backend logic as Pitchwire, separate deployment and task set.",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "tail": "wrangler tail"
+    "tail": "wrangler tail",
+    "test": "node --test \"test/*.test.mjs\""
   },
   "devDependencies": {
     "wrangler": "^3.90.0"
