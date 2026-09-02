@@ -35,6 +35,10 @@ struct ThreadDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 OverallBanner(report: report)
 
+                if thread.messages.count >= 2 {
+                    riskTimeline(thread)
+                }
+
                 if let escalation {
                     escalationCard(escalation)
                 }
@@ -68,6 +72,40 @@ struct ThreadDetailView: View {
             .padding(20)
         }
         .background(Color(uiColor: .systemGroupedBackground))
+    }
+
+    /// A calm risk-over-time strip: one segment per message, coloured by how
+    /// that message read, with the start → now transition in words.
+    private func riskTimeline(_ thread: ConversationThread) -> some View {
+        let levels = thread.messages.map(\.overall)
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("How the risk has moved")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 3) {
+                ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(Palette.color(for: level))
+                        .frame(height: 8)
+                }
+            }
+            .accessibilityHidden(true)
+
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(levels.first?.headline ?? "")
+                Image(systemName: "arrow.right").font(.system(size: 9))
+                Text(levels.last?.headline ?? "")
+                    .foregroundStyle(Palette.color(for: levels.last ?? .clear))
+                    .fontWeight(.medium)
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .cardStyle()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("How the risk has moved across \(levels.count) messages: started \(levels.first?.headline ?? ""), now \(levels.last?.headline ?? "").")
     }
 
     private func messageRow(number: Int, message: ConversationThread.Message, isLatest: Bool) -> some View {
