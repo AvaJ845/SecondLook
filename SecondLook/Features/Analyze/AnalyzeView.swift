@@ -55,7 +55,7 @@ struct AnalyzeView: View {
                 }
             }
             .navigationDestination(item: Binding(get: { model.report }, set: { model.report = $0 })) { report in
-                ReportView(report: report, deepInput: model.deepCheckInput, onDone: { model.report = nil })
+                ReportView(report: report, deepInput: model.deepCheckInput, sourceText: model.text, onDone: { model.report = nil })
             }
             .task(id: photoItem) {
                 await model.loadImage(photoItem)
@@ -213,6 +213,7 @@ struct AnalyzeView: View {
 #Preview {
     AnalyzeView()
         .environment(HistoryStore(defaults: UserDefaults(suiteName: "preview")!))
+            .environment(ThreadStore(directory: FileManager.default.temporaryDirectory))
         .environment(AIClient())
         .environment(Entitlements())
         .environment(SubscriptionManager(entitlements: Entitlements()))

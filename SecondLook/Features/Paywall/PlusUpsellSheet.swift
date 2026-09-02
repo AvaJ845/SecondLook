@@ -20,7 +20,7 @@ struct PlusUpsellSheet: View {
                     .font(.system(.title3, design: .rounded).weight(.bold))
                     .foregroundStyle(Palette.brandNavy)
                     .multilineTextAlignment(.center)
-                Text("Plus gives you deeper screenshot analysis and more AI-assisted context when something doesn't feel right.")
+                Text("Plus tracks a whole recruiter conversation and gives you the full breakdown on every flag — how the scam works and how to protect yourself.")
                     .font(.subheadline)
                     .foregroundStyle(Palette.brandSecondaryText)
                     .multilineTextAlignment(.center)

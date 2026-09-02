@@ -34,6 +34,7 @@ struct RootView: View {
 #Preview {
     RootView()
         .environment(HistoryStore(defaults: UserDefaults(suiteName: "preview")!))
+            .environment(ThreadStore(directory: FileManager.default.temporaryDirectory))
         .environment(AIClient())
         .environment(LLMLog())
         .environment(Entitlements())

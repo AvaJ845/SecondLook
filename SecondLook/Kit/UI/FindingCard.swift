@@ -2,7 +2,20 @@ import SwiftUI
 
 struct FindingCard: View {
     let finding: Finding
+    /// When true, the Plus "More on this" section is shown in full. When false
+    /// and a deep dive exists, a locked teaser + `onUnlock` is shown instead.
+    var deepDiveUnlocked: Bool = false
+    var onUnlock: (() -> Void)? = nil
+
     @State private var expanded = false
+
+    private var deepDive: DeepDive? { Rules.rule(id: finding.ruleID)?.deepDive }
+
+    #if DEBUG
+    private var demoExpanded: Bool { ProcessInfo.processInfo.arguments.contains("-demo-expand") }
+    #else
+    private var demoExpanded: Bool { false }
+    #endif
 
     var body: some View {
         let tint = Palette.color(for: finding.severity)
@@ -29,7 +42,7 @@ struct FindingCard: View {
             }
             .buttonStyle(.plain)
 
-            if expanded {
+            if expanded || demoExpanded {
                 VStack(alignment: .leading, spacing: 12) {
                     detail(title: "Why this stands out", body: finding.explanation)
 
@@ -56,6 +69,16 @@ struct FindingCard: View {
                             }
                         }
                     }
+
+                    if let deepDive {
+                        if deepDiveUnlocked {
+                            Divider().padding(.vertical, 2)
+                            deepDiveContent(deepDive)
+                        } else if onUnlock != nil {
+                            Divider().padding(.vertical, 2)
+                            deepDiveLocked
+                        }
+                    }
                 }
                 .transition(.opacity)
             }
@@ -77,5 +100,47 @@ struct FindingCard: View {
             Text(body)
                 .font(.footnote)
         }
+    }
+
+    @ViewBuilder
+    private func deepDiveContent(_ d: DeepDive) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles").font(.caption)
+                Text("More on this").font(.caption.weight(.semibold))
+                if let also = d.alsoCalled {
+                    Text("· also called \(also)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+            }
+            .foregroundStyle(Palette.brandTeal)
+
+            detail(title: "How this scam works", body: d.mechanic)
+            detail(title: "What happens if you engage", body: d.ifYouEngage)
+            detail(title: "Protect yourself", body: d.protectYourself)
+        }
+    }
+
+    private var deepDiveLocked: some View {
+        Button {
+            onUnlock?()
+        } label: {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "lock.fill").font(.caption).foregroundStyle(Palette.brandTeal)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("More on this — with SecondLook Plus")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Palette.brandTeal)
+                    Text("How this scam works, what happens if you engage, and the specific steps to protect yourself.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct SecondLookApp: App {
     @State private var history = HistoryStore()
+    @State private var threads = ThreadStore()
     @State private var aiClient: AIClient
     @State private var llmLog: LLMLog
     @State private var entitlements: Entitlements
@@ -14,6 +15,9 @@ struct SecondLookApp: App {
         _llmLog = State(initialValue: log)
 
         let ent = Entitlements()
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-demo-plus") { ent.update(plan: .plus) }
+        #endif
         _entitlements = State(initialValue: ent)
         _subscriptions = State(initialValue: SubscriptionManager(entitlements: ent))
 
@@ -39,6 +43,7 @@ struct SecondLookApp: App {
         WindowGroup {
             RootView()
                 .environment(history)
+                .environment(threads)
                 .environment(aiClient)
                 .environment(llmLog)
                 .environment(entitlements)

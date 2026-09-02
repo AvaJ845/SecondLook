@@ -3,15 +3,27 @@ import SwiftUI
 struct ReportView: View {
     let report: AnalysisReport
     var deepInput: DeepCheckInput? = nil
+    /// The message text behind this report, if available — enables "Track this
+    /// conversation". `nil` for reports rebuilt from saved history.
+    var sourceText: String? = nil
     var onDone: (() -> Void)? = nil
 
     @Environment(HistoryStore.self) private var history
+    @Environment(ThreadStore.self) private var threads
+    @Environment(Entitlements.self) private var entitlements
     @Environment(AIClient.self) private var ai
     @Environment(\.dismiss) private var dismiss
     @State private var showSaveDialog = false
     @State private var saveLabel = ""
     @State private var saved = false
     @State private var showShare = false
+    @State private var showPaywall = false
+    @State private var trackedThreadID: UUID?
+
+    private var canTrack: Bool {
+        guard let t = sourceText else { return false }
+        return t.trimmingCharacters(in: .whitespacesAndNewlines).count >= 8
+    }
 
     var body: some View {
         ScrollView {
@@ -28,13 +40,25 @@ struct ReportView: View {
 
                 if !report.activeFindings.isEmpty {
                     section("What we found") {
-                        ForEach(report.activeFindings) { FindingCard(finding: $0) }
+                        ForEach(report.activeFindings) { finding in
+                            FindingCard(
+                                finding: finding,
+                                deepDiveUnlocked: entitlements.isPlus,
+                                onUnlock: { showPaywall = true }
+                            )
+                        }
                     }
                 }
 
                 if !report.contextFindings.isEmpty {
                     section("Normal for your stage") {
-                        ForEach(report.contextFindings) { FindingCard(finding: $0) }
+                        ForEach(report.contextFindings) { finding in
+                            FindingCard(
+                                finding: finding,
+                                deepDiveUnlocked: entitlements.isPlus,
+                                onUnlock: { showPaywall = true }
+                            )
+                        }
                     }
                 }
 
@@ -54,6 +78,19 @@ struct ReportView: View {
                         .cardStyle()
                 }
 
+                if canTrack {
+                    Button {
+                        trackConversation()
+                    } label: {
+                        Label(entitlements.isPlus ? "Track this conversation" : "Track this conversation — Plus",
+                              systemImage: "bubble.left.and.text.bubble.right")
+                            .font(.subheadline.weight(.medium))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(Palette.brandTeal)
+                }
+
                 Button {
                     showShare = true
                 } label: {
@@ -69,8 +106,14 @@ struct ReportView: View {
             .padding(20)
         }
         .background(Color(uiColor: .systemGroupedBackground))
+        .navigationDestination(item: $trackedThreadID) { id in
+            ThreadDetailView(threadID: id)
+        }
         .sheet(isPresented: $showShare) {
             ShareResultSheet(report: report)
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView(reason: .general)
         }
         #if DEBUG
         .onAppear {
@@ -105,6 +148,13 @@ struct ReportView: View {
         }
     }
 
+    private func trackConversation() {
+        guard entitlements.isPlus else { showPaywall = true; return }
+        guard let text = sourceText else { return }
+        let thread = threads.create(label: "", firstMessage: text, stage: report.stage)
+        trackedThreadID = thread.id
+    }
+
     private var stageFraming: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Your stage: \(report.stage.title)")
@@ -130,6 +180,7 @@ struct ReportView: View {
     NavigationStack {
         ReportView(report: RuleEngine.analyze(text: SampleMessages.all[0].text, stage: .firstContact))
             .environment(HistoryStore(defaults: UserDefaults(suiteName: "preview")!))
+            .environment(ThreadStore(directory: FileManager.default.temporaryDirectory))
             .environment(AIClient())
             .environment(Entitlements())
             .environment(SubscriptionManager(entitlements: Entitlements()))

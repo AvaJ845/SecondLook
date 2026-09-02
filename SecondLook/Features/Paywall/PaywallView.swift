@@ -27,7 +27,7 @@ struct PaywallView: View {
             case .general:
                 return "More AI-assisted context when something doesn't feel right."
             case .afterFirstCheck:
-                return "Plus gives you deeper screenshot analysis and more AI-assisted context when something doesn't feel right."
+                return "Plus tracks whole conversations, gives you the full breakdown on every flag, and 20 Deep AI Checks a month."
             case .deepCheckLimit:
                 return "Plus includes 20 Deep AI Checks a month. Your standard on-device checks are always unlimited and free."
             }
@@ -110,10 +110,10 @@ struct PaywallView: View {
 
     private var benefits: some View {
         VStack(alignment: .leading, spacing: 10) {
+            benefit("Track whole conversations", "Save a recruiter thread and re-check it as replies come in — with an alert when the risk rises.")
+            benefit("The full breakdown on every flag", "How each scam works, what happens if you engage, and the specific steps to protect yourself.")
             benefit("20 Deep AI Checks a month", "Free includes 2.")
-            benefit("Deeper screenshot & context analysis", "More detail on what the model sees.")
-            benefit("Full, unlimited saved history", "Free keeps your recent checks.")
-            benefit("Priority AI processing", nil)
+            benefit("Your full saved history", "Free keeps your most recent checks.")
         }
     }
 

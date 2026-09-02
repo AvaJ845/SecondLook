@@ -14,6 +14,11 @@ struct Rule {
     /// What the reader should actually do about it.
     let whatToDo: String
 
+    /// SecondLook Plus expansion: how the scam actually works, what happens if
+    /// you engage, and fuller steps. Bundled on-device — no AI, no network.
+    /// `nil` for low-signal rules that don't need it.
+    let deepDive: DeepDive?
+
     /// Stages where this is a red flag. Empty = every stage.
     let flaggedStages: Set<HiringStage>
 
@@ -31,6 +36,7 @@ struct Rule {
         severity: Severity,
         explanation: String,
         whatToDo: String,
+        deepDive: DeepDive? = nil,
         flaggedStages: Set<HiringStage> = [],
         normalAtStage: HiringStage? = nil,
         normalStageNote: String? = nil,
@@ -41,11 +47,24 @@ struct Rule {
         self.severity = severity
         self.explanation = explanation
         self.whatToDo = whatToDo
+        self.deepDive = deepDive
         self.flaggedStages = flaggedStages
         self.normalAtStage = normalAtStage
         self.normalStageNote = normalStageNote
         self.detect = detect
     }
+}
+
+/// The Plus-tier "more on this" content for a finding.
+struct DeepDive: Equatable {
+    /// How the scheme actually works — what the request is really for.
+    var mechanic: String
+    /// What typically happens if you go along with it.
+    var ifYouEngage: String
+    /// Fuller, specific protective steps.
+    var protectYourself: String
+    /// The name people search for this scam type (FTC / FBI IC3 terminology).
+    var alsoCalled: String?
 }
 
 // MARK: - Detector helpers

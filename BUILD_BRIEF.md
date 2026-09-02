@@ -223,6 +223,29 @@ gates safety; the backend uses per-install tokens with **no account**; the
 config, not architecture: create the DeviceCheck key, wire the real App Store
 URL, publish `docs/`.
 
+## Plus — real value (Fellows verdict, built 2026-09-01)
+
+Paywall was selling two features that didn't exist. Fixed:
+- **Honest copy** — dropped "priority AI processing" and "deeper screenshot
+  analysis" everywhere; the paywall now lists only shipped capability.
+- **Deeper report** (on-device, no AI) — `Rule.deepDive` on the 9 highest-signal
+  rules: how the scam works, what happens if you engage, specific protective
+  steps, and the FTC/IC3 term to search. `FindingCard` shows it in full for
+  Plus, a locked teaser → paywall for free.
+- **Conversation threads + escalation** — `ConversationThread` + `ThreadStore`
+  (file-protected JSON, sanitized text, never synced). "Track this conversation"
+  on a report (Plus-gated) → `ThreadDetailView`: add each recruiter reply, the
+  whole thread is re-checked, and an escalation card fires when the overall
+  rises or a new serious/critical flag appears. Threads surface in History.
+- Free tier unchanged: unlimited standard checks, 2 Deep AI/mo, recent history,
+  share card, the one-line why + what-to-do on every flag.
+
+Tests: 7 `ThreadStoreTests` (create/sanitize/escalation/persist/combined) +
+deep-dive coverage. 66 total, 6 StoreKit skip. Unsigned archive clean.
+
+Deferred (Fellows): signed updatable rule bundle (the strongest recurring-pay
+justification — needs infra); `verifyEmployer` UI; practice/training mode.
+
 ## Open questions
 
 - Ship the domain reference list in-app (current) vs. a signed, updatable bundle?

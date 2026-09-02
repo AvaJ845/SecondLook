@@ -61,4 +61,20 @@ final class RuleEngineTests: XCTestCase {
         XCTAssertFalse(quotes.joined().contains("123-45-6789"))
         XCTAssertTrue(quotes.joined().contains("[SSN removed]"))
     }
+
+    func testHighSeverityRulesCarryADeepDive() {
+        let expected = ["upfront_payment", "gift_card_or_wire", "check_overpayment",
+                        "ssn_request", "bank_details_request", "id_document_request",
+                        "offer_without_interview", "chat_app_interview",
+                        "reshipping_or_payment_processing"]
+        for id in expected {
+            let dd = Rules.rule(id: id)?.deepDive
+            XCTAssertNotNil(dd, "\(id) should have a deep dive")
+            XCTAssertFalse(dd?.mechanic.isEmpty ?? true)
+            XCTAssertFalse(dd?.protectYourself.isEmpty ?? true)
+        }
+        // Low-signal rules don't need one.
+        XCTAssertNil(Rules.rule(id: "generic_greeting")?.deepDive)
+        XCTAssertNil(Rules.rule(id: "urgency_pressure")?.deepDive)
+    }
 }
