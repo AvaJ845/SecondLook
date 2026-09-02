@@ -104,5 +104,9 @@ struct StatsWidgetView: View {
                 Spacer(minLength: 0)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(isEmpty
+            ? "SecondLook. Check a job message before you reply."
+            : "SecondLook. \(c.checked) checked in \(c.monthLabel), \(c.flagged) flagged.")
     }
 }

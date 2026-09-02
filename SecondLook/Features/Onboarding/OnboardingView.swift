@@ -10,6 +10,14 @@ struct OnboardingView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var page = 0
 
+    #if DEBUG
+    private var startPage: Int {
+        guard let i = ProcessInfo.processInfo.arguments.firstIndex(of: "-onboarding-page"),
+              i + 1 < ProcessInfo.processInfo.arguments.count else { return 0 }
+        return Int(ProcessInfo.processInfo.arguments[i + 1]) ?? 0
+    }
+    #endif
+
     private let pages = OnboardingPage.all
 
     var body: some View {
@@ -21,9 +29,15 @@ struct OnboardingView: View {
 
                 TabView(selection: $page) {
                     ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
-                        OnboardingPageView(page: page)
-                            .tag(index)
-                            .padding(.horizontal, 28)
+                        Group {
+                            if index == 1 {
+                                OnboardingDemoView()   // a live check, not a value prop
+                            } else {
+                                OnboardingPageView(page: page)
+                            }
+                        }
+                        .tag(index)
+                        .padding(.horizontal, 28)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
@@ -38,6 +52,9 @@ struct OnboardingView: View {
             .frame(maxWidth: 540)
             .frame(maxWidth: .infinity)
         }
+        #if DEBUG
+        .onAppear { if startPage != 0 { page = startPage } }
+        #endif
     }
 
     private var header: some View {
@@ -120,12 +137,9 @@ struct OnboardingPage {
             body: "SecondLook helps you spot unusual patterns in job messages before you send money, documents, or personal information.",
             chips: []
         ),
-        .init(
-            gesture: .lookCloser,
-            headline: "Look closer. Stay in control.",
-            body: "SecondLook checks the message for signals worth a closer look — and explains what it found.",
-            chips: ["Patterns", "Context", "Evidence"]
-        ),
+        // Index 1 is rendered by `OnboardingDemoView` (a live check). This entry
+        // only supplies the page count and dot; its content is not shown.
+        .init(gesture: .lookCloser, headline: "", body: "", chips: []),
         .init(
             gesture: .held,
             headline: "Your message stays yours.",

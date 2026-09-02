@@ -12,6 +12,7 @@ struct OverallBanner: View {
                 Image(systemName: report.overall.symbolName)
                     .foregroundStyle(tint)
             }
+            .accessibilityAddTraits(.isHeader)
 
             Text(report.overall.detail)
                 .font(.subheadline)
@@ -28,6 +29,8 @@ struct OverallBanner: View {
                             .foregroundStyle(Palette.color(for: severity))
                     }
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(tallyLabel)
             }
         }
         .padding(16)
@@ -46,5 +49,11 @@ struct OverallBanner: View {
         [Severity.critical, .serious, .caution]
             .map { ($0, report.count(of: $0)) }
             .filter { $0.1 > 0 }
+    }
+
+    private var tallyLabel: String {
+        severityTallies
+            .map { "\($0.1) \($0.0.label.lowercased())" }
+            .joined(separator: ", ")
     }
 }

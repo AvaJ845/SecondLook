@@ -150,11 +150,13 @@ struct AnalyzeView: View {
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 8)
+                        .accessibilityHidden(true)
                 }
                 TextEditor(text: $model.text)
                     .frame(minHeight: 160)
                     .scrollContentBackground(.hidden)
                     .focused($editorFocused)
+                    .accessibilityLabel("Message to check")
             }
             .cardStyle()
 

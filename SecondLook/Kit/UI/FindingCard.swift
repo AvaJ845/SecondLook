@@ -8,8 +8,13 @@ struct FindingCard: View {
     var onUnlock: (() -> Void)? = nil
 
     @State private var expanded = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var deepDive: DeepDive? { Rules.rule(id: finding.ruleID)?.deepDive }
+
+    private var severityPhrase: String {
+        finding.isNormalForStage ? "Normal at this stage, with a caveat" : finding.severity.label
+    }
 
     #if DEBUG
     private var demoExpanded: Bool { ProcessInfo.processInfo.arguments.contains("-demo-expand") }
@@ -21,11 +26,12 @@ struct FindingCard: View {
         let tint = Palette.color(for: finding.severity)
         VStack(alignment: .leading, spacing: 10) {
             Button {
-                withAnimation(.easeInOut(duration: 0.15)) { expanded.toggle() }
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) { expanded.toggle() }
             } label: {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Image(systemName: finding.severity.symbolName)
                         .foregroundStyle(tint)
+                        .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(finding.title)
                             .font(.subheadline.weight(.semibold))
@@ -38,9 +44,14 @@ struct FindingCard: View {
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(severityPhrase): \(finding.title)")
+            .accessibilityHint(expanded ? "Hides the explanation" : "Shows why this stands out and what to do")
+            .accessibilityAddTraits(.isButton)
 
             if expanded || demoExpanded {
                 VStack(alignment: .leading, spacing: 12) {
@@ -105,17 +116,19 @@ struct FindingCard: View {
     @ViewBuilder
     private func deepDiveContent(_ d: DeepDive) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
-                Image(systemName: "sparkles").font(.caption)
-                Text("More on this").font(.caption.weight(.semibold))
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles").font(.caption).accessibilityHidden(true)
+                    Text("More on this").font(.caption.weight(.semibold))
+                }
+                .foregroundStyle(Palette.brandTeal)
                 if let also = d.alsoCalled {
-                    Text("· also called \(also)")
+                    Text("Also called \(also)")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .foregroundStyle(Palette.brandTeal)
 
             detail(title: "How this scam works", body: d.mechanic)
             detail(title: "What happens if you engage", body: d.ifYouEngage)

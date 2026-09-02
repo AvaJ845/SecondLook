@@ -7,6 +7,7 @@ struct ThreadDetailView: View {
     @Environment(AIClient.self) private var ai
     @Environment(Entitlements.self) private var entitlements
     @Environment(DeepCheckQuota.self) private var quota
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var newReply = ""
     @State private var escalation: ThreadEscalation?
@@ -103,7 +104,7 @@ struct ThreadDetailView: View {
                 .cardStyle()
             Button {
                 composerFocused = false
-                withAnimation {
+                withAnimation(reduceMotion ? nil : .default) {
                     escalation = threads.addMessage(newReply, to: thread.id)
                 }
                 newReply = ""
