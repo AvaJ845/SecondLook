@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// SecondLook's visual language: calm, plain, closer to a utility than an alarm.
 /// Severity colors are the one place we lean on hue, and they stay legible in
@@ -24,21 +25,40 @@ enum Palette {
         endPoint: .bottomTrailing
     )
 
+    /// Severity colours. Each is an adaptive pair — a deep, high-contrast tone
+    /// on light backgrounds (all clear WCAG AA as text on the app's cards) and a
+    /// brighter tone on dark. The same value is used for text, a 10–15%
+    /// background wash, and the 1 px rails.
     static func color(for severity: Severity) -> Color {
         switch severity {
-        case .info: return Color.secondary
-        case .caution: return Color(red: 0.80, green: 0.60, blue: 0.12)
-        case .serious: return Color(red: 0.87, green: 0.45, blue: 0.16)
-        case .critical: return Color(red: 0.80, green: 0.24, blue: 0.22)
+        case .info:     return Color.secondary
+        case .caution:  return adaptive(light: 0x8A6000, dark: 0xE8B15A)
+        case .serious:  return adaptive(light: 0xB4531B, dark: 0xF0975A)
+        case .critical: return adaptive(light: 0xB02219, dark: 0xF06C63)
         }
     }
 
     static func color(for level: OverallLevel) -> Color {
         switch level {
-        case .clear: return Color(red: 0.20, green: 0.55, blue: 0.36)
-        case .review: return Color(red: 0.80, green: 0.60, blue: 0.12)
-        case .strong: return Color(red: 0.80, green: 0.24, blue: 0.22)
+        case .clear:  return adaptive(light: 0x1F7A46, dark: 0x4FC07E)
+        case .review: return color(for: .caution)
+        case .strong: return color(for: .critical)
         }
+    }
+
+    private static func adaptive(light: Int, dark: Int) -> Color {
+        Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(rgb: dark) : UIColor(rgb: light) })
+    }
+}
+
+private extension UIColor {
+    convenience init(rgb: Int) {
+        self.init(
+            red: CGFloat((rgb >> 16) & 0xFF) / 255,
+            green: CGFloat((rgb >> 8) & 0xFF) / 255,
+            blue: CGFloat(rgb & 0xFF) / 255,
+            alpha: 1
+        )
     }
 }
 

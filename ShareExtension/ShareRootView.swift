@@ -67,6 +67,8 @@ struct ShareRootView: View {
             VStack(alignment: .leading, spacing: 18) {
                 OverallBanner(report: report)
 
+                OnDeviceBadge()
+
                 VStack(alignment: .leading, spacing: 8) {
                     stagePicker
                     Text(stage.whatIsNormal)

@@ -17,6 +17,7 @@ struct ReportView: View {
     @State private var saveLabel = ""
     @State private var saved = false
     @State private var showShare = false
+    @State private var showSafeShare = false
     @State private var showPaywall = false
     @State private var trackedThreadID: UUID?
 
@@ -25,10 +26,17 @@ struct ReportView: View {
         return t.trimmingCharacters(in: .whitespacesAndNewlines).count >= 8
     }
 
+    private var canShareSafely: Bool {
+        guard let t = sourceText else { return false }
+        return t.trimmingCharacters(in: .whitespacesAndNewlines).count >= 20
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 OverallBanner(report: report)
+
+                OnDeviceBadge(aiConfigured: ai.isConfigured)
 
                 stageFraming
 
@@ -108,6 +116,18 @@ struct ReportView: View {
                 .buttonStyle(.bordered)
                 .tint(Palette.brandTeal)
 
+                if canShareSafely {
+                    Button {
+                        showSafeShare = true
+                    } label: {
+                        Label("Send a safe copy of the message", systemImage: "paperplane")
+                            .font(.subheadline.weight(.medium))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(Palette.brandTeal)
+                }
+
                 DisclaimerFooter()
             }
             .padding(20)
@@ -119,12 +139,17 @@ struct ReportView: View {
         .sheet(isPresented: $showShare) {
             ShareResultSheet(report: report)
         }
+        .sheet(isPresented: $showSafeShare) {
+            if let sourceText { SafeShareSheet(sourceText: sourceText) }
+        }
         .sheet(isPresented: $showPaywall) {
             PaywallView(reason: .general)
         }
         #if DEBUG
         .onAppear {
-            if ProcessInfo.processInfo.arguments.contains("-demo-share") { showShare = true }
+            let args = ProcessInfo.processInfo.arguments
+            if args.contains("-demo-share") { showShare = true }
+            if args.contains("-demo-safeshare") { showSafeShare = true }
         }
         #endif
         .navigationTitle("Second look")
