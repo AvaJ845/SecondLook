@@ -115,10 +115,14 @@ call it. Re-probe with `?only=` before trusting a new id.
 
 | chain | models |
 | --- | --- |
-| text (fast) | **minimax-m2.7:free** → nemotron-3.5-lightning → glm-5.2:free |
-| text (quality) | **minimax-m2.7:free** → nemotron-3.5-lightning → glm-5.2:free → nemotron-3-ultra:free |
+| text (fast) | **minimax-m2.7:free** → glm-5.2:free → nemotron-3.5-lightning |
+| text (quality) | **minimax-m2.7:free** → glm-5.2:free → nemotron-3-ultra:free → nemotron-3.5-lightning |
 | deepCheck (vision) | **minimax-m3:free** → gemma-4-31b:free → (text-only last resort on minimax-m2.7:free, image stripped) |
-| deepCheck (no image) | **minimax-m2.7:free** → nemotron-3.5-lightning |
+| deepCheck (no image) | **minimax-m2.7:free** → glm-5.2:free → nemotron-3.5-lightning |
+
+`nemotron-3.5-lightning` was 200/~6 s on 2026-09-01 and an 18 s hang on
+2026-09-02 — it's last in every chain and the breaker benches it after one hang.
+`minimax-m2.7:free` is the one model that's been reliably fast; it leads.
 
 ### Resilience
 

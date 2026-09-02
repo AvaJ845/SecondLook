@@ -59,10 +59,12 @@
 //   nvidia:moonshotai/kimi-k3                       HANGS 20s  ← was the deepCheck timeout; do NOT use
 //   nvidia:zai-org/glm-5.3-flash                    404        ← never existed on NIM
 // Refresh with: GET /v1/models  and  GET /v1/models?provider=nvidia
-const NV_LIGHTNING = "nvidia:nvidia/nemotron-3.5-lightning-30b-a3b"; // verified 200
-const OR_MINIMAX   = "openrouter:minimax/minimax-m2.7:free";         // verified 200, clean
+const OR_MINIMAX   = "openrouter:minimax/minimax-m2.7:free";         // verified 200, clean, ~5s — the reliable one
 const OR_GLM       = "openrouter:z-ai/glm-5.2:free";                 // free_text list; sometimes 429
 const OR_NEM_ULTRA = "openrouter:nvidia/nemotron-3-ultra-550b-a55b:free";
+// nemotron-3.5-lightning was 200/~6s on 2026-09-01 but HUNG for 18s on
+// 2026-09-02 — kept only as a last resort, behind the circuit breaker.
+const NV_LIGHTNING = "nvidia:nvidia/nemotron-3.5-lightning-30b-a3b";
 
 // Vision-capable, from the /v1/models free_vision list. NVIDIA vision models all
 // returned "not found for account" on this key, so vision runs on OpenRouter
@@ -80,9 +82,9 @@ const DEEPCHECK_VISION = ["openrouter:minimax/minimax-m3:free", "openrouter:goog
 const VISION_TEXT_FALLBACK = [OR_MINIMAX]; // image stripped, last resort only
 
 const TASK_MODELS = {
-  plainSummary:   [OR_MINIMAX, NV_LIGHTNING, OR_GLM],
-  verifyEmployer: [OR_MINIMAX, NV_LIGHTNING, OR_GLM],
-  replyCoach:     [OR_MINIMAX, NV_LIGHTNING, OR_GLM, OR_NEM_ULTRA],
+  plainSummary:   [OR_MINIMAX, OR_GLM, NV_LIGHTNING],
+  verifyEmployer: [OR_MINIMAX, OR_GLM, NV_LIGHTNING],
+  replyCoach:     [OR_MINIMAX, OR_GLM, OR_NEM_ULTRA, NV_LIGHTNING],
   deepCheck:      VISION_MODELS, // presence gates the task; real chain built per request
 };
 
@@ -270,7 +272,7 @@ async function handle(request, env, ctx) {
     } else if (task === "deepCheck") {
       // Short by design — see REQUEST_BUDGET_MS. With no image it's a plain
       // text call, so a couple of text models fit the budget fine.
-      chain = isVision ? [...DEEPCHECK_VISION, ...VISION_TEXT_FALLBACK] : [OR_MINIMAX, NV_LIGHTNING];
+      chain = isVision ? [...DEEPCHECK_VISION, ...VISION_TEXT_FALLBACK] : [OR_MINIMAX, OR_GLM, NV_LIGHTNING];
     } else {
       chain = TASK_MODELS[task];
     }
