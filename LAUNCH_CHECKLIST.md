@@ -76,18 +76,39 @@ key away — no app update needed.
 - [ ] Rotate `SECONDLOOK_CLIENT_TOKEN` and `INSTALL_TOKEN_SECRET` if either was
       ever pasted anywhere outside `wrangler secret put`.
 
-## 3. App Store Connect — subscriptions
+## 3. App Store Connect — subscriptions (P0 — paywall is dead without this)
 
-Create the group and both products (the app reads every price/period/trial from
-StoreKit — do **not** hard-code):
+App Store Connect → your app → **Monetization → Subscriptions**. The app reads
+every price / period / trial from StoreKit at runtime — nothing is hard-coded,
+so ASC is the source of truth. Match `SecondLook.storekit` exactly:
 
-- [ ] Subscription group **"SecondLook Plus"**.
-- [ ] `com.avaresearch.secondlook.plus.monthly` — **$3.99/month**, 7-day free
-      trial introductory offer.
-- [ ] `com.avaresearch.secondlook.plus.yearly` — **$24.99/year**, 7-day free
-      trial introductory offer.
-- [ ] Display names, descriptions, localizations for each.
-- [ ] Add sandbox testers; smoke-test purchase / restore / trial / cancel.
+- [ ] **Create a Subscription Group.** Reference name: `SecondLook Plus`.
+      Localized group display name: `SecondLook Plus`.
+- [ ] **Product 1 — Monthly**
+  - Reference Name: `SecondLook Plus Monthly`
+  - Product ID: `com.avaresearch.secondlook.plus.monthly`  *(must match exactly)*
+  - Duration: **1 Month**
+  - Price: **USD 3.99** (Tier that shows $3.99 in the US)
+  - Localization (en-US): Display Name `SecondLook Plus`, Description
+    `Track whole conversations, the full breakdown on every flag, and 20 Deep AI Checks a month.`
+  - **Introductory Offer:** New Subscribers · **Free** · **1 Week**
+- [ ] **Product 2 — Yearly**
+  - Reference Name: `SecondLook Plus Yearly`
+  - Product ID: `com.avaresearch.secondlook.plus.yearly`
+  - Duration: **1 Year**
+  - Price: **USD 24.99**
+  - Localization (en-US): Display Name `SecondLook Plus (Yearly)`, Description
+    `Everything in Plus, best value — about $2.08/month.`
+  - **Introductory Offer:** New Subscribers · **Free** · **1 Week**
+- [ ] Add a **Subscription Group localization** and, for the first submission,
+      attach a screenshot of the paywall (ASC requires one per group).
+- [ ] **Paid Applications agreement** must be Active (Business → Agreements).
+- [ ] Create a **Sandbox tester** (Users and Access → Sandbox) and smoke-test
+      on a device: purchase → Plus unlocks, force-quit → still Plus, Settings →
+      cancel → back to Free, restore → Plus.
+- [ ] The two products must be **submitted with the first app version** (attach
+      them to the version in the "In-App Purchases and Subscriptions" section)
+      or the paywall shows "Plans couldn't be loaded" in review.
 
 ## 4. App Store Connect — app record
 
@@ -100,11 +121,14 @@ StoreKit — do **not** hard-code):
 - [ ] **Category:** Utilities (primary), Business (secondary). Age 4+.
 - [ ] Metadata: paste Name / Subtitle / Keywords / description / promo text /
       "what's new" from `AppStore/METADATA.md`.
-- [ ] Screenshots (6.9"): the 6 frames listed in `AppStore/METADATA.md` — lead
-      with the real report, not a welcome screen.
+- [ ] **Screenshots (6.9"):** ready in `AppStore/screenshots/` — native
+      1320 × 2868, upload to the 6.9" slot and ASC derives the rest. Captions in
+      that folder's README. Add 1–2 device-captured frames of the Plus features
+      (deeper report, conversation threads) before final submission.
 - [ ] **App Review notes:** paste the block at the bottom of
       `AppStore/METADATA.md` (safety/education tool, flags patterns only, Deep AI
-      Check is the one opt-in network path).
+      Check is the one opt-in network path). Add: *"SecondLook Plus is submitted
+      with this version; sign in is not required for any feature."*
 
 ## 5. After the listing is live
 
@@ -113,8 +137,8 @@ StoreKit — do **not** hard-code):
       switch to it automatically (they use the marketing site until then).
 - [ ] Update `docs/index.html` — swap "Coming soon to the App Store" for a real
       download button.
-- [ ] Wire `requestReview` at the happy moment (3rd report that found something)
-      — planned in `AppStore/ASO_PLAYBOOK.md`, not yet built.
+- [x] `requestReview` at the happy moment — built (`Support/ReviewPrompt.swift`;
+      fires on the 3rd and 8th report that found something, once per version).
 
 ## Deferred (post-launch, tracked)
 

@@ -3,7 +3,9 @@ import PhotosUI
 
 struct AnalyzeView: View {
     @Environment(Entitlements.self) private var entitlements
+    @Environment(\.requestReview) private var requestReview
     @State private var model = AnalyzeModel()
+    @State private var pendingReview = false
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var editorFocused: Bool
 
@@ -68,10 +70,16 @@ struct AnalyzeView: View {
                 }
             }
             .onChange(of: model.report == nil) { wasReportShowing, reportGone in
+                guard reportGone else { return }
                 // Returned from the first completed check → offer Plus, once.
-                if reportGone, firstCheckCompleted, !upsellShown, !entitlements.isPlus {
+                if firstCheckCompleted, !upsellShown, !entitlements.isPlus {
                     upsellShown = true
                     activeSheet = .upsell
+                    pendingReview = false   // don't stack a review prompt on the upsell
+                } else if pendingReview {
+                    pendingReview = false
+                    requestReview()
+                    ReviewPrompt.markRequested()
                 }
             }
             .sheet(item: $activeSheet) { sheet in
@@ -173,7 +181,12 @@ struct AnalyzeView: View {
         Button {
             editorFocused = false
             model.analyze()
-            if model.report != nil { firstCheckCompleted = true }
+            if let report = model.report {
+                firstCheckCompleted = true
+                if report.overall != .clear, ReviewPrompt.shouldRequestReview() {
+                    pendingReview = true
+                }
+            }
         } label: {
             Text("Take a second look")
                 .font(.headline)

@@ -452,16 +452,25 @@ async function verifyInstallToken(token, env) {
 
 async function verifyDeviceCheck(deviceToken, env) {
   const jwt = await appleDeviceCheckJWT(env);
-  const res = await fetch("https://api.devicecheck.apple.com/v1/validate_device_token", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${jwt}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      device_token: deviceToken,
-      transaction_id: crypto.randomUUID(),
-      timestamp: Date.now(),
-    }),
+  const body = JSON.stringify({
+    device_token: deviceToken,
+    transaction_id: crypto.randomUUID(),
+    timestamp: Date.now(), // milliseconds
   });
-  return res.status === 200; // 200 = a genuine Apple device
+  // A token from a dev/TestFlight build validates against the development host;
+  // an App Store build against production. Try production first, then dev.
+  for (const host of ["api.devicecheck.apple.com", "api.development.devicecheck.apple.com"]) {
+    const res = await fetch(`https://${host}/v1/validate_device_token`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${jwt}`, "Content-Type": "application/json" },
+      body,
+    });
+    if (res.status === 200) return true; // genuine Apple device
+    // 400 "Failed to find bit state" also means a valid token (just no stored bits).
+    const text = (await res.text().catch(() => "")).toLowerCase();
+    if (res.status === 400 && text.includes("bit state")) return true;
+  }
+  return false;
 }
 
 async function appleDeviceCheckJWT(env) {

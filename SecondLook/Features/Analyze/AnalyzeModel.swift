@@ -49,9 +49,23 @@ final class AnalyzeModel {
 
     func analyze() {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        // An imported screenshot with no readable text is still a valid check —
+        // the report shows the "couldn't read this" note and offers Deep AI
+        // Check on the image. Only a truly empty input does nothing.
+        guard !trimmed.isEmpty || pickedImageData != nil else { return }
         report = RuleEngine.analyze(text: trimmed, stage: stage)
     }
+
+    /// True when the produced report has no findings because there was no text
+    /// to check — but the user did attach a screenshot.
+    var reportIsImageOnlyWithNoText: Bool {
+        guard let report else { return false }
+        return !report.hadText && pickedImageData != nil
+    }
+
+    #if DEBUG
+    func setImageDataForTesting(_ data: Data?) { pickedImageData = data }
+    #endif
 
     func reset() {
         text = ""

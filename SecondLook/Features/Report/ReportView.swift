@@ -72,10 +72,17 @@ struct ReportView: View {
                 }
 
                 if report.activeFindings.isEmpty && report.contextFindings.isEmpty {
-                    Text("None of our rule checks matched this message. Keep watching for anything that asks you for money, documents, or personal numbers as the conversation goes on.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .cardStyle()
+                    if !report.hadText, deepInput?.imageData != nil {
+                        Text("SecondLook couldn't read any text from that screenshot — it may be blurry, cropped, or mostly image. Run a Deep AI Check below to have a model look at the picture itself, or paste the message as text.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .cardStyle()
+                    } else {
+                        Text("None of our rule checks matched this message. Keep watching for anything that asks you for money, documents, or personal numbers as the conversation goes on.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .cardStyle()
+                    }
                 }
 
                 if canTrack {
