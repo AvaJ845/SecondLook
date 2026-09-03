@@ -70,6 +70,16 @@ Upload**. Same result, handles signing interactively.
       processing (~10–30 min) → add **internal testers** (no review needed).
 - [ ] For **external** testers: fill "What to Test" + the beta description, then
       submit for **Beta App Review** (usually < 24 h, lighter than full review).
+
+**"What to Test" for build 6** (everything since build 3, which was the last upload):
+new app icon; the company reality check (a message that name-drops a big
+employer but links elsewhere); "Checked on your device" note on every report;
+"Send a safe copy" (redacted message); "Report a job scam" → FTC handoff on
+strong flags; the Learn tab (Spot the scam practice + Your radar glossary);
+weekly practice + quiet-thread reminders (About → Reminders, opt-out);
+Control Center "Check Clipboard" control + Home Screen widget; the "Is this a
+scam?" Shortcut / Action Button; guided first-run; VoiceOver on the report;
+and the Deep AI Check reliability fix.
 - [x] App icon: "Second glance" — the doubled message bubble on the navy→teal
       brand field. Full-bleed, no baked corners, no alpha. Editable master at
       `AppStore/icon-source.svg`; re-export a flattened 1024 PNG from it after
