@@ -130,6 +130,9 @@ struct AboutView: View {
                     Text("SecondLook flags patterns. It can't confirm that a message, company, or person is legitimate or fraudulent, and a clean result is not a guarantee of safety.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Text("Company names appear only to identify real employers whose names are used in scam messages. SecondLook is not affiliated with, endorsed by, or sponsored by any company it names, and every example message in the app is fictional.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("About")

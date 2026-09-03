@@ -52,23 +52,23 @@ enum SampleMessages {
         ),
         Sample(
             id: "impersonation",
-            label: "\"Wells Fargo\" hiring email",
+            label: "\"USPS\" hiring email",
             stage: .firstContact,
             text: """
             Dear Candidate,
 
-            Wells Fargo is pleased to move forward with your application for a \
-            Remote Client Services role ($32/hour). No interview is required at \
-            this stage.
+            The United States Postal Service is pleased to move forward with your \
+            application for a Remote Mail Processing Clerk role ($30/hour). No \
+            interview is required at this stage.
 
             To begin onboarding, verify your identity and complete your new-hire \
-            paperwork at our secure portal: hr-verify-wf.co (bit.ly/wf-onboard). \
+            paperwork at our secure portal: usps-hr-verify.co (bit.ly/usps-onboard). \
             You'll enter your Social Security number and direct-deposit details there.
 
             Please complete this within 24 hours to hold your position.
 
             Talent Acquisition Team
-            recruiting.wellsfargo2026@gmail.com
+            recruiting.usps2026@gmail.com
             """
         ),
         Sample(

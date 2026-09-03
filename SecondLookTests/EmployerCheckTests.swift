@@ -67,10 +67,10 @@ final class EmployerCheckTests: XCTestCase {
         XCTAssertNotNil(report.employer)
     }
 
-    func testTheImpersonationSampleFlagsWellsFargo() {
+    func testTheImpersonationSampleFlagsTheNamedEmployer() {
         let sample = SampleMessages.all.first { $0.id == "impersonation" }!
         let report = RuleEngine.analyze(text: sample.text, stage: sample.stage)
-        XCTAssertEqual(report.employer?.employer, "Wells Fargo")
+        XCTAssertEqual(report.employer?.employer, "USPS")
         guard case .linkMismatch? = report.employer?.verdict else { return XCTFail("expected mismatch") }
         XCTAssertEqual(report.overall, .strong)
     }

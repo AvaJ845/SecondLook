@@ -125,3 +125,11 @@ screenshot and message text to our backend (a Cloudflare Worker that proxies a
 third-party model) — only on an explicit tap, after a one-time consent screen,
 and it is revocable in About → AI. This is declared in the privacy manifest as
 Other User Content for App Functionality.
+
+**Third-party company names** (e.g. in the "company reality check" and the
+built-in example messages) are used referentially — to identify real employers
+whose names are impersonated in scam messages and to point the user to that
+employer's own careers site. No affiliation or endorsement is implied or
+claimed, no logos or trade dress are used, and every example message is
+fictional. A disclaimer to this effect appears in the About tab.
+Reminders are local notifications only (opt-out in About) — no push server.
