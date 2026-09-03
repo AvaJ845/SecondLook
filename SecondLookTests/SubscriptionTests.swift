@@ -64,6 +64,42 @@ final class SubscriptionTests: XCTestCase {
         try XCTSkipIf(subs.yearly == nil, "StoreKitTest did not serve products in this environment")
     }
 
+    /// Proves the StoreKit configuration is actually wired into the run/test
+    /// scheme (`<StoreKitConfigurationFileReference identifier="SecondLook.storekit">`)
+    /// and that `SecondLook.storekit` parses. This is the check that would have
+    /// caught the paywall's "Plans couldn't be loaded" bug.
+    ///
+    /// - Zero products  → the scheme reference is missing or its path is wrong
+    ///   (xcodegen writes a broken `../../SecondLook.storekit`; `scripts/generate.sh`
+    ///   corrects it). This **fails** the test.
+    /// - Only the first product  → the iOS 26.5 Simulator + `xcodebuild test`
+    ///   regression where storekitd never fully syncs the config from the command
+    ///   line (`SKInternalErrorDomain Code=3`). Nothing in this project can fix
+    ///   that; run from the Xcode IDE or pin the iOS 26.1 Simulator runtime. This
+    ///   **skips** with that message.
+    func testStoreKitConfigIsWired() async throws {
+        var ids: Set<String> = []
+        for _ in 0..<3 {
+            let products = try await Product.products(for: SubscriptionManager.ProductID.all)
+            ids = Set(products.map(\.id))
+            if ids == SubscriptionManager.ProductID.all { break }
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
+
+        if ids == SubscriptionManager.ProductID.all { return }
+
+        XCTAssertFalse(
+            ids.isEmpty,
+            "No StoreKit products at all — the scheme has no working "
+            + "StoreKitConfigurationFileReference. Run ./scripts/generate.sh."
+        )
+        throw XCTSkip(
+            "Only \(ids) served. Known iOS 26.5 Simulator regression: storekitd "
+            + "does not fully sync a StoreKit config under `xcodebuild test`. Run "
+            + "from the Xcode IDE, or pin the iOS 26.1 Simulator runtime."
+        )
+    }
+
     func testProductsLoad() async throws {
         let session = try makeSession()
         defer { session.clearTransactions() }

@@ -8,7 +8,7 @@
   ],
   "settings" : {
     "_applicationInternalID" : "6740000000",
-    "_developerTeamID" : "0000000000",
+    "_developerTeamID" : "3L683975L8",
     "_failTransactionsEnabled" : false,
     "_lastSynchronizedDate" : 0,
     "_locale" : "en_US",
@@ -62,7 +62,7 @@
           ],
           "displayPrice" : "24.99",
           "familyShareable" : false,
-          "groupNumber" : 1,
+          "groupNumber" : 2,
           "internalID" : "017FF302-A763-4167-A8A8-90A7D21E2102",
           "introductoryOffer" : {
             "internalID" : "15F0616A-4FFF-44EC-8350-78F0298FE7FF",
