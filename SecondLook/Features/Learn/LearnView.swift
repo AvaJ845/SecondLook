@@ -62,6 +62,11 @@ struct LearnView: View {
                 }
             }
             .sheet(isPresented: $showPaywall) { PaywallView(reason: .general) }
+            #if DEBUG
+            .onAppear {
+                if ProcessInfo.processInfo.arguments.contains("-demo-practice") { showPractice = true }
+            }
+            #endif
         }
     }
 

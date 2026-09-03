@@ -117,7 +117,9 @@ struct AnalyzeView: View {
             .task {
                 let args = ProcessInfo.processInfo.arguments
                 if args.contains("-demo-fill"), model.text.isEmpty {
-                    model.useSample(SampleMessages.all[0])
+                    let idx = (args.firstIndex(of: "-demo-fill").map { args.index(after: $0) })
+                        .flatMap { $0 < args.endIndex ? Int(args[$0]) : nil } ?? 0
+                    model.useSample(SampleMessages.all[min(idx, SampleMessages.all.count - 1)])
                 }
                 if args.contains("-demo-report"), model.report == nil {
                     let idx = (args.firstIndex(of: "-demo-report").map { args.index(after: $0) })
