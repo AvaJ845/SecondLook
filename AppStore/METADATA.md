@@ -28,16 +28,23 @@ once, no repeats across the three fields.
 
 ## Keywords (≤100) — the hidden App Store Connect array
 
-`fraud,phishing,employment,hiring,career,work,message,text,email,dm,interview,onboarding,letter,wire`  *(99 chars)*
+`fraud,phishing,employment,hiring,remote,work,message,text,email,dm,interview,letter,wire,crypto,gift`  *(100 chars)*
 
 Rules applied: comma-separated, **no spaces**, **no word repeated** from Name or
 Subtitle, **singulars only**, **no competitor or platform names**. Apple indexes
 Name + Subtitle + Keywords as one string, so these assemble into phrases like:
 
 **Combinations harvested:** `job scam checker`, `fake job`, `employment scam`,
-`recruiter fraud`, `hiring scam`, `career scam`, `fake offer`, `job offer letter`,
-`interview scam`, `phishing email`, `scam text message`, `wire fraud`,
-`work from home scam`, `recruiter scam`, `fake recruiter`
+`recruiter fraud`, `hiring scam`, `remote job scam`, `work from home scam`,
+`fake offer`, `job offer letter`, `interview scam`, `phishing email`,
+`scam text message`, `wire fraud`, `crypto job scam`, `gift card scam`,
+`dm recruiter scam`
+
+Prior set (v1.0 draft) traded `career` + `onboarding` — both low-volume, and
+`onboarding` was app jargon rather than search language — for `remote` (the
+largest job-scam category), `crypto` (fastest-growing payment method), and
+`gift` (the most common "pay to start" ask). Revisit against
+App Store Connect → Analytics search-term data after ~1 month live.
 
 **Deliberately excluded:**
 - `verified` / `legit` / `legitimate` / `trust` / `background check` — SecondLook
