@@ -38,7 +38,8 @@ ls Config/AIConfig.plist    # BaseURL + bootstrap token — without it the app
                             # runs fully offline (valid, just no AI phrasing).
 
 # 3. Archive (TEAMID = your 10-char Apple Developer Team ID):
-xcodegen generate
+./scripts/generate.sh    # xcodegen generate + a scheme fix for local StoreKit
+                         # testing (doesn't affect the archive)
 xcodebuild -project SecondLook.xcodeproj -scheme SecondLook \
   -destination 'generic/platform=iOS' -archivePath build/SecondLook.xcarchive \
   archive \
