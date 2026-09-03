@@ -117,18 +117,23 @@ so ASC is the source of truth. Match `SecondLook.storekit` exactly:
   - Duration: **1 Month**
   - Price: **USD 3.99** (Tier that shows $3.99 in the US)
   - Localization (en-US): Display Name `SecondLook Plus`, Description
-    `Track whole conversations, the full breakdown on every flag, and 20 Deep AI Checks a month.`
+    (≤54 chars) `Full breakdowns, saved threads, 20 Deep AI Checks/mo`
   - **Introductory Offer:** New Subscribers · **Free** · **1 Week**
+  - **Country/Region availability:** All (Apple is merchant of record; no
+    extra dev tax burden). Family Sharing: off.
 - [ ] **Product 2 — Yearly**
   - Reference Name: `SecondLook Plus Yearly`
   - Product ID: `com.avaresearch.secondlook.plus.yearly`
   - Duration: **1 Year**
   - Price: **USD 24.99**
-  - Localization (en-US): Display Name `SecondLook Plus (Yearly)`, Description
-    `Everything in Plus, best value — about $2.08/month.`
+  - Localization (en-US): Display Name `SecondLook Plus`, Description
+    (≤54 chars) `Everything in Plus — best value, about $2 a month`
   - **Introductory Offer:** New Subscribers · **Free** · **1 Week**
+  - Country/Region availability: All. Family Sharing: off.
+- [ ] Put **both products at the same subscription level/rank** (identical
+      features → monthly↔yearly is a crossgrade, not an up/downgrade).
 - [ ] Add a **Subscription Group localization** and, for the first submission,
-      attach a screenshot of the paywall (ASC requires one per group).
+      attach a screenshot of the paywall (ASC requires one per product).
 - [ ] **Paid Applications agreement** must be Active (Business → Agreements).
 - [ ] Create a **Sandbox tester** (Users and Access → Sandbox) and smoke-test
       on a device: purchase → Plus unlocks, force-quit → still Plus, Settings →
