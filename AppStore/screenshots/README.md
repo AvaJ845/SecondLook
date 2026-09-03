@@ -1,16 +1,39 @@
 # App Store screenshots
 
-Captured on **iPhone 17 Pro Max (6.9")** — native **1320 × 2868**, which is
-exactly the App Store Connect 6.9" slot. Upload these to the 6.9" display size;
-App Store Connect derives the smaller sizes.
+Composed marketing screenshots — caption + framed device shot on a warm-neutral
+ground. Exact App Store Connect pixel sizes; upload as-is.
 
-| # | Frame | Suggested caption |
-|---|---|---|
-| 1 | Onboarding | Before you reply, take a second look. |
-| 2 | Check screen with a scam message pasted | Paste a recruiter message or drop in a screenshot. |
-| 3 | The report | Every flag says what's wrong, why, and what to do — no black-box score. |
-| 4 | Share sheet | Share the check with a friend — never the message. |
+| Slot | Folder | Size | Count |
+|---|---|---|---|
+| iPhone 6.9" | `iphone-6.9/` | 1320 × 2868 | 4 |
+| iPad 13"    | `ipad-13/`    | 2064 × 2752 | 3 |
 
-Regenerate: build for the Pro Max sim, then
-`xcrun simctl launch <id> com.avaresearch.secondlook -skip-onboarding -demo-report -uitest-mock-ai`
-(DEBUG-only launch args: `-demo-fill`, `-demo-report`, `-demo-share`, `-demo-plus`, `-demo-expand`).
+App Store Connect derives the smaller sizes from these.
+
+## Frames & captions
+
+| # | File | Caption | Screen |
+|---|---|---|---|
+| 1 | `1-report` | Named reasons — never a black-box score. | The report: severity summary, "Checked on your device", stage read, plain-terms explanation |
+| 2 | `2-paste`  | Paste a message. No account, nothing to sign up for. | Check screen with a reshipping-scam message pasted |
+| 3 | `3-share`  | Share the findings — never the message. | The "safe copy" share sheet — plain-English flag list, message stays on device |
+| 4 | `4-calm`   | Built calm, private, and account-free. | First-run screen (iPhone only) |
+
+Order leads with the payoff (the report), then how it starts, then the privacy
+share, then the promise — calm, no-account, on-device throughout, to match the
+Apple-editorial North Star.
+
+## Regenerate
+
+Compositor: `scratchpad/compose.py` (session-local). Raw captures come from the
+DEBUG launch args:
+
+```
+xcrun simctl launch <sim> com.avaresearch.secondlook \
+  -skip-onboarding -demo-report 0 -uitest-mock-ai        # the report
+  -skip-onboarding -demo-fill 0                           # pasted message
+  -skip-onboarding -demo-report 0 -demo-share -uitest-mock-ai   # share sheet
+  -onboarding-page 0                                      # first-run
+```
+
+Captured on **iPhone 17 Pro Max** and **iPad Pro 13-inch (M5)**, light appearance.
