@@ -5,10 +5,12 @@ ground. Exact App Store Connect pixel sizes; upload as-is.
 
 | Slot | Folder | Size | Count |
 |---|---|---|---|
+| iPhone 6.5" | `iphone-6.5/` | 1284 × 2778 | 4 |
 | iPhone 6.9" | `iphone-6.9/` | 1320 × 2868 | 4 |
 | iPad 13"    | `ipad-13/`    | 2064 × 2752 | 3 |
 
-App Store Connect derives the smaller sizes from these.
+Upload the set that matches the slot App Store Connect shows you (it currently
+asks for **6.5"** — 1284 × 2778). ASC derives the remaining smaller sizes.
 
 ## Frames & captions
 
