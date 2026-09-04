@@ -84,6 +84,14 @@ SecondLook is a fast, private gut-check for any job message. Paste a recruiter e
 
 SecondLook points out patterns commonly seen in job scams. It can't confirm whether any message, company, or person is legitimate, and a clean result isn't a guarantee. When money, documents, or personal numbers are involved, verify the employer independently.
 
+Terms of Use (EULA): https://avaj845.github.io/SecondLook/terms.html
+Privacy Policy: https://avaj845.github.io/SecondLook/privacy.html
+
+**Required in the Description field** — Apple 3.1.2 rejects a subscription app whose
+product-page metadata has no functional Terms of Use (EULA) link. Keep both lines
+as the last paragraph of the App Description in App Store Connect. (Rejected once
+on 2026-09-03 for exactly this; fixed by adding the lines.)
+
 ## What's New (1.0)
 
 First release. Paste a job message or import a screenshot, pick your hiring stage, and get an explainable report on what's unusual — read entirely on your device. Includes stage-aware red-flag rules, an on-device link check against real careers and applicant-tracking sites, and an optional AI deep check you control.
